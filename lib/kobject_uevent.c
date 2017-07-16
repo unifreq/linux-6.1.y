@@ -179,6 +179,18 @@ out:
 	return r;
 }
 
+u64 uevent_next_seqnum(void)
+{
+	u64 seq;
+
+	mutex_lock(&uevent_sock_mutex);
+	seq = ++uevent_seqnum;
+	mutex_unlock(&uevent_sock_mutex);
+
+	return seq;
+}
+EXPORT_SYMBOL_GPL(uevent_next_seqnum);
+
 /**
  * kobject_synth_uevent - send synthetic uevent with arguments
  *
