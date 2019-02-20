@@ -1374,6 +1374,8 @@ void mmc_power_off(struct mmc_host *host)
 
 	mmc_pwrseq_power_off(host);
 
+	mmc_set_initial_signal_voltage(host);
+
 	host->ios.clock = 0;
 	host->ios.vdd = 0;
 
