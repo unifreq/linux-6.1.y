@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2019 Christian Hewitt <christianshewitt@gmail.com>
+ */
+
+/dts-v1/;
+
+#include "meson-g12b-dreambox.dtsi"
+
+/ {
+	compatible = "dream,dreambox-one", "amlogic,g12b";
+	model = "Dreambox One";
+};
