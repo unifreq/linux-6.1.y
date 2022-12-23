@@ -194,7 +194,7 @@ static void panfrost_job_hw_submit(struct panfrost_job *job, int js)
 
 	panfrost_devfreq_record_busy(&pfdev->pfdevfreq);
 
-	ret = pm_runtime_get_sync(pfdev->dev);
+	ret = pm_runtime_resume_and_get(pfdev->dev);
 	if (ret < 0)
 		return;
 
