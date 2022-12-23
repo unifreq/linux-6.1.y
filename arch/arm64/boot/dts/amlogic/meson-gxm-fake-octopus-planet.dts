@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2022 Flippy
+ */
+
+/dts-v1/;
+
+#include "meson-gxm-octopus-planet.dts"
+
+/ {
+	model = "Fake Octopus Planet";
+};

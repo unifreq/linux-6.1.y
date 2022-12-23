@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2020 Flippy
+ */
+
+/dts-v1/;
+
+#include "meson-gxm-q200.dts"
+
+/ {
+	model = "Octopus Planet";
+
+	leds {
+		compatible = "gpio-leds";
+
+		green_led {
+			label = "green";
+			gpios = <&gpio_ao GPIOAO_5 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "usb-host";
+		};
+
+		blue_led {
+			label = "blue";
+			gpios = <&gpio_ao GPIOAO_6 GPIO_ACTIVE_HIGH>;
+			//linux,default-trigger = "mdio_mux-0.2009087f:00:link";
+			linux,default-trigger = "mmc2";
+		};
+
+		red_led {
+			label = "red";
+			gpios = <&gpio_ao GPIOAO_9 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+	};
+};
+
+&ethmac {
+	snps,aal;
+	snps,txpbl = <0x8>;
+	snps,rxpbl = <0x8>;
+};
+
+&sd_emmc_a {
+        status = "disabled";
+};
+
+&sd_emmc_b {
+        status = "okay";
+};
+
+&sd_emmc_c {
+        status = "okay";
+};
+
+&uart_A {
+	status = "disabled";
+};
