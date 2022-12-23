@@ -657,6 +657,8 @@
 			clock-names = "ahb", "mod";
 			dmas = <&dma 22>, <&dma 22>;
 			dma-names = "rx", "tx";
+			pinctrl-names = "default";
+			pinctrl-0 = <&spi0_pins>, <&spi0_cs_pin>;
 			resets = <&ccu RST_BUS_SPI0>;
 			status = "disabled";
 			#address-cells = <1>;
@@ -672,6 +674,8 @@
 			clock-names = "ahb", "mod";
 			dmas = <&dma 23>, <&dma 23>;
 			dma-names = "rx", "tx";
+			pinctrl-names = "default";
+			pinctrl-0 = <&spi1_pins>, <&spi1_cs_pin>;
 			resets = <&ccu RST_BUS_SPI1>;
 			status = "disabled";
 			#address-cells = <1>;
