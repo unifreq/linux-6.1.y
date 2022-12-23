@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2018 He Yangxuan
+ * Copyright (c) 2020 Flippy
+ */
+
+/dts-v1/;
+
+#include "meson-gxl-s905d-phicomm-n1.dts"
+
+&ethmac {
+	snps,force_thresh_dma_mode;
+};
