@@ -137,7 +137,7 @@
 
 	thermal-zones {
 		cpu-thermal {
-			polling-delay-passive = <250>; /* milliseconds */
+			polling-delay-passive = <800>; /* milliseconds */
 			polling-delay = <1000>; /* milliseconds */
 
 			thermal-sensors = <&scpi_sensors 0>;
