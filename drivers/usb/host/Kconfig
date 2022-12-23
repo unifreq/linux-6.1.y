@@ -78,6 +78,15 @@ config USB_XHCI_MTK
 	  found in MediaTek SoCs.
 	  If unsure, say N.
 
+config USB_XHCI_SUNXI
+        tristate "xHCI support for Allwinner SoCs"
+        depends on RESET_CONTROLLER
+        depends on ARCH_SUNXI || COMPILE_TEST
+        help
+          Say 'Y' to enable the support for the xHCI host controller
+          found in some new Allwinner ARMv8 SoCs.
+          If unsure, say N.
+
 config USB_XHCI_MVEBU
 	tristate "xHCI support for Marvell Armada 375/38x/37xx"
 	select USB_XHCI_PLATFORM
