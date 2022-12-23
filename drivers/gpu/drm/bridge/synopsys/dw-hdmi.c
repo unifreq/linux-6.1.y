@@ -782,6 +782,11 @@ static void hdmi_enable_audio_clk(struct dw_hdmi *hdmi, bool enable)
 	else
 		hdmi->mc_clkdis |= HDMI_MC_CLKDIS_AUDCLK_DISABLE;
 	hdmi_writeb(hdmi, hdmi->mc_clkdis, HDMI_MC_CLKDIS);
+
+	if (enable) {
+		hdmi_set_cts_n(hdmi, hdmi->audio_cts, 0);
+		hdmi_set_cts_n(hdmi, hdmi->audio_cts, hdmi->audio_n);
+	}
 }
 
 static u8 *hdmi_audio_get_eld(struct dw_hdmi *hdmi)
