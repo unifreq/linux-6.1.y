@@ -134,6 +134,16 @@
 			opp-hz = /bits/ 64 <1908000000>;
 			opp-microvolt = <950000>;
 		};
+
+		opp-2016000000 {
+			opp-hz = /bits/ 64 <2016000000>;
+			opp-microvolt = <1000000>;
+		};
+
+		opp-2100000000 {
+			opp-hz = /bits/ 64 <2100000000>;
+			opp-microvolt = <1022000>;
+		};
 	};
 };
 
