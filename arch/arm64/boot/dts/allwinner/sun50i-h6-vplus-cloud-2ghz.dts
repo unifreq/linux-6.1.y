@@ -1,0 +1,8 @@
+/dts-v1/;
+
+#include "sun50i-h6-vplus-cloud.dts"
+#include "sun50i-h6-vplus-cloud-cpu-opp-addon.dtsi"
+
+/ {
+	model = "V-Plus Cloud @ 2GHz";
+};

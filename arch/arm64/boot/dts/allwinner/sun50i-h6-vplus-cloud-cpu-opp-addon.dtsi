@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+// Copyright (C) 2019 Ondřej Jirman <megous@megous.com>
+
+&reg_dcdca {
+	regulator-max-microvolt = <1220000>;
+};
+
+&cpu_opp_table {
+
+	opp@1896000000 {
+		clock-latency-ns = <244144>; /* 8 32k periods */
+		opp-hz = /bits/ 64 <1896000000>;
+
+		opp-microvolt-speed0 = <1180000>;
+		opp-microvolt-speed1 = <1120000>;
+		opp-microvolt-speed2 = <1120000>;
+	};
+
+	opp@1968000000 {
+		clock-latency-ns = <244144>; /* 8 32k periods */
+		opp-hz = /bits/ 64 <1968000000>;
+
+		opp-microvolt-speed0 = <1200000>;
+		opp-microvolt-speed1 = <1140000>;
+		opp-microvolt-speed2 = <1140000>;
+	};
+
+	opp@2016000000 {
+		clock-latency-ns = <244144>; /* 8 32k periods */
+		opp-hz = /bits/ 64 <2016000000>;
+
+		opp-microvolt-speed0 = <1220000>;
+		opp-microvolt-speed1 = <1160000>;
+		opp-microvolt-speed2 = <1160000>;
+	};
+};

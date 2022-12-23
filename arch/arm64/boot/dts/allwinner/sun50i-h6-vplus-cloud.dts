@@ -1,0 +1,400 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+// Copyright (C) 2019 Ondřej Jirman <megous@megous.com>
+
+/dts-v1/;
+
+#include "sun50i-h6.dtsi"
+#include "sun50i-h6-vplus-cloud-cpu-opp.dtsi"
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	model = "V-Plus Cloud";
+	compatible = "vplus,vplus-cloud", "allwinner,sun50i-h6";
+
+	aliases {
+		serial0 = &uart0;
+		ethernet0 = &emac;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	ext_osc32k: ext_osc32k_clk {
+		#clock-cells = <0>;
+		compatible = "fixed-clock";
+		clock-frequency = <32768>;
+		clock-output-names = "ext_osc32k";
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		power {
+			label = "RED";
+			gpios = <&r_pio 1 0 GPIO_ACTIVE_LOW>;
+			default-state = "on";
+		};
+
+		link {
+			label = "BLUE";
+			gpios = <&r_pio 1 1 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "stmmac-0:01:link";
+			default-state = "off";
+		};
+
+		disk {
+			label = "GREEN";
+			gpios = <&r_pio 1 2 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "mmc0";
+			default-state = "off";
+		};
+	};
+
+	reg_vcc12v: vcc12v {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc-12v";
+		regulator-min-microvolt = <12000000>;
+		regulator-max-microvolt = <12000000>;
+		regulator-always-on;
+		regulator-boot-on;
+	};
+
+	reg_vcc5v: vcc5v {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc-5v";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-always-on;
+		regulator-boot-on;
+		vin-supply = <&reg_vcc12v>;
+	};
+
+	reg_dummy_vcc_3v3: dummy-vcc-3v3 {
+		compatible = "regulator-fixed";
+		regulator-name = "dummy-vcc-3v3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+		regulator-boot-on;
+	};
+
+	reg_usb_vbus: vbus {
+		compatible = "regulator-fixed";
+		//regulator-name = "usb-vbus";
+		regulator-name = "vbus";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		gpio = <&pio 6 3 GPIO_ACTIVE_HIGH>; /* PG3 */
+		startup-delay-us = <100000>;
+		enable-active-high;
+	};
+
+	reg_ephy_gpio_3v3: ephy-gpio-3v3 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc-ephy-gpio-3v3";
+
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		startup-delay-us = <100000>;
+
+		gpio = <&pio 3 14 GPIO_ACTIVE_HIGH>; /* PD14 */
+		enable-active-high;
+	};
+};
+
+&cpu0 {
+	cpu-supply = <&reg_dcdca>;
+};
+
+&de {
+	status = "disabled";
+};
+
+&dwc3 {
+	status = "okay";
+};
+
+&ehci0 {
+	status = "okay";
+};
+
+&ehci3 {
+	status = "okay";
+};
+
+&gpu {
+	mali-supply = <&reg_dcdcc>;
+	status = "disabled";
+};
+
+&hdmi {
+	status = "disabled";
+};
+
+&emac {
+	pinctrl-names = "default";
+	pinctrl-0 = <&ext_rgmii_pins>;
+
+	phy-mode = "rgmii";
+	phy-handle = <&ext_rgmii_phy>;
+
+	/* 
+	 * The external ethernet phy is powered by reg_aldo2,
+	 * This is the real situation, but for individual 
+	 * boxes it can cause the network to not work, 
+	 * so a workaround has to be used.
+	 * phy-supply = <&reg_aldo2>;
+	 */
+	phy-supply = <&reg_ephy_gpio_3v3>;
+
+	allwinner,rx-delay-ps = <900>;
+	allwinner,tx-delay-ps = <600>;
+
+	status = "okay";
+};
+
+&mdio {
+	ext_rgmii_phy: ethernet-phy@1 {
+		compatible = "ethernet-phy-ieee802.3-c22";
+		reg = <1>;
+		//max-speed = <1000>;
+		//reset-assert-us = <15000>;
+		//reset-deassert-us = <50000>;
+		//reset-gpios = <&pio 3 14 GPIO_ACTIVE_LOW>; /* PD14 */
+	};
+};
+
+&mmc0 {
+	status = "disabled";
+};
+
+&mmc1 {
+	status = "disabled";
+};
+
+&mmc2_pins {
+	drive-strength = <40>;
+};
+
+&mmc2 {
+	vmmc-supply = <&reg_cldo1>;
+	vqmmc-supply = <&reg_bldo2>;
+	non-removable;
+	disable-wp;
+	cap-mmc-hw-reset;
+	cap-mmc-highspeed;
+
+	mmc-ddr-1_8v;
+	mmc-hs200-1_8v;
+
+	bus-width = <8>;
+	max-frequency = <200000000>;
+
+	status = "okay";
+};
+
+&ohci0 {
+	status = "okay";
+};
+
+&ohci3 {
+	status = "okay";
+};
+
+&pio {
+	vcc-pb-supply = <&reg_cldo1>;
+	vcc-pc-supply = <&reg_bldo2>;
+	vcc-pd-supply = <&reg_cldo1>;
+	vcc-pg-supply = <&reg_cldo3>;
+	vcc-ph-supply = <&reg_cldo1>;
+};
+
+&r_pio {
+	/*
+	 * PL0 and PL1 are used for PMIC I2C
+	 * don't enable the pl-supply else
+	 * it will fail at boot
+	 *
+	 * vcc-pl-supply = <&reg_aldo1>;
+	 */
+	vcc-pl-supply = <&reg_dummy_vcc_3v3>;
+	vcc-pm-supply = <&reg_cldo3>;
+};
+
+&r_i2c {
+	status = "okay";
+
+	axp805: pmic@36 {
+		compatible = "x-powers,axp805", "x-powers,axp806";
+		reg = <0x36>;
+		interrupt-parent = <&r_intc>;
+		interrupts = <GIC_SPI 96 IRQ_TYPE_LEVEL_LOW>;
+		interrupt-controller;
+		#interrupt-cells = <1>;
+		x-powers,self-working-mode;
+		vina-supply = <&reg_vcc5v>;
+		vinb-supply = <&reg_vcc5v>;
+		vinc-supply = <&reg_vcc5v>;
+		vind-supply = <&reg_vcc5v>;
+		vine-supply = <&reg_vcc5v>;
+		aldoin-supply = <&reg_vcc5v>;
+		bldoin-supply = <&reg_vcc5v>;
+		cldoin-supply = <&reg_vcc5v>;
+
+		regulators {
+			reg_aldo1: aldo1 {
+				regulator-always-on;
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-name = "vcc-pl";
+			};
+
+			reg_aldo2: aldo2 {
+				regulator-always-on;
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-name = "vcc-tv-ldoin-ephy-mac";
+				regulator-enable-ramp-delay = <100000>;
+			};
+
+			reg_aldo3: aldo3 {
+				/* unused */
+				regulator-always-on;
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-name = "vcc25-dram";
+			};
+
+			reg_bldo1: bldo1 {
+				regulator-always-on;
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <1800000>;
+				regulator-name = "vcc-bias-pll";
+			};
+
+			reg_bldo2: bldo2 {
+				regulator-always-on;
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <1800000>;
+				regulator-name = "vcc-efuse-pcie-hdmi-io";
+			};
+
+			reg_bldo3: bldo3 {
+				/* unused */
+				regulator-always-on;
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <1800000>;
+				regulator-name = "vcc-dcxoio";
+			};
+
+			bldo4 {
+				/* unused */
+			};
+
+			reg_cldo1: cldo1 {
+				regulator-always-on;
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-name = "vcc-3v3";
+			};
+
+			reg_cldo2: cldo2 {
+				/* unused */
+				regulator-always-on;
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-name = "vcc-wifi-1";
+				
+			};
+
+			reg_cldo3: cldo3 {
+				/* VCC-PG-PM */
+				regulator-always-on;
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-name = "vcc-pg-pm";
+			};
+
+			reg_dcdca: dcdca {
+				regulator-always-on;
+				regulator-min-microvolt = <820000>;
+				regulator-max-microvolt = <1160000>;
+				regulator-name = "vdd-cpu";
+			};
+
+			reg_dcdcc: dcdcc {
+				regulator-enable-ramp-delay = <32000>;
+				regulator-min-microvolt = <810000>;
+				regulator-max-microvolt = <1080000>;
+				regulator-name = "vdd-gpu";
+			};
+
+			reg_dcdcd: dcdcd {
+				regulator-always-on;
+				regulator-min-microvolt = <960000>;
+				regulator-max-microvolt = <960000>;
+				regulator-name = "vdd-sys";
+			};
+
+			reg_dcdce: dcdce {
+				regulator-always-on;
+				regulator-min-microvolt = <1200000>;
+				regulator-max-microvolt = <1200000>;
+				regulator-name = "vcc-dram";
+			};
+
+			sw {
+				/* unused */
+			};
+		};
+	};
+};
+
+&r_ir {
+	status = "disabled";
+};
+
+&rtc {
+	clocks = <&ext_osc32k>;
+};
+
+&uart0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart0_ph_pins>;
+	status = "okay";
+};
+
+&usb2otg {
+	dr_mode = "otg";
+	status = "okay";
+};
+
+&usb2phy {
+	usb0_id_det-gpios = <&pio 7 4 GPIO_ACTIVE_HIGH>; /* PH4 */
+	usb0_vbus-supply = <&reg_vcc5v>;
+	usb3_vbus-supply = <&reg_usb_vbus>;
+	status = "okay";
+};
+
+&usb3phy {
+	phy-supply = <&reg_usb_vbus>;
+	status = "okay";
+};
+
+&soc {
+	/delete-node/ usb@5200000;
+	/delete-node/ phy@5210000;
+	usb3: usb3@5200000 {
+		compatible = "allwinner,sun50i-h6-xhci";
+		reg = <0x05200000 0x100000>;
+		interrupts = <GIC_SPI 26 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&ccu CLK_BUS_XHCI>, <&ccu CLK_USB_PHY1>;
+		clock-names = "xhci", "phy";
+		resets = <&ccu RST_BUS_XHCI>, <&ccu RST_USB_PHY1>;
+		reset-names = "xhci", "phy";
+		#phy-cells = <0>;
+		phy-supply = <&reg_usb_vbus>;
+		status = "okay";
+	};
+};
