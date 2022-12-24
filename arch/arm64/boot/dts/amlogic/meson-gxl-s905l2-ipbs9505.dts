@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2016 Endless Computers, Inc.
+ * Author: Carlo Caione <carlo@endlessm.com>, flippy
+ */
+
+/dts-v1/;
+
+#include "meson-gxl-s905l2-x7-5g.dts"
+
+/ {
+	compatible = "amlogic,ipbs9505", "amlogic,s905l2", "amlogic,meson-gxl";
+	model = "Wojia TV IPBS9505";
+};
+
+/* eMMC */
+// Reduce the frequency from 200000000 to 100000000 to solve the emmc usage problem
+&sd_emmc_c {
+	max-frequency = <100000000>;
+};

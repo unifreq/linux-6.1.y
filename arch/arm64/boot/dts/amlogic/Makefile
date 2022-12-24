@@ -60,6 +60,7 @@ dtb-$(CONFIG_ARCH_MESON) += meson-gxl-s905d-phicomm-n1.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-gxl-s905d-phicomm-n1-thresh.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-gxl-s905d-sml5442tw.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-gxl-s905d-vero4k-plus.dtb
+dtb-$(CONFIG_ARCH_MESON) += meson-gxl-s905l2-ipbs9505.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-gxl-s905l2-x7-5g.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-gxl-s905l3b-m302a.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-gxl-s905l-venz-v10.dtb
