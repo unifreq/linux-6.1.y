@@ -214,6 +214,30 @@ config TM1628
 	  It's a 3-wire SPI device controlling a two-dimensional grid of
 	  LEDs. Dimming is applied to all outputs through an internal PWM.
 
+config OPENVFD
+	tristate "OpenVFD LED display driver"
+	depends on SPI
+	depends on I2C
+	depends on OF
+	help
+	  Say Y to enable support for openvfd LED controller.
+
+	    This repository contains the source code for the FD628 and similar LED 
+	  display controllers.
+
+	    The FD628 controller is often used in Android TV boxes with a 7 segment 
+	  LED display at the front.
+
+	    Although the FD628 controller has support for a multitude of different 
+	  display configurations, the current implementation only supports common 
+	  cathode and common anode displays with 7 segments. The driver can also 
+	  support FD650, which uses a variation of the I2C communication protocol.  
+
+	    In addition it supports HD44780 text based LCD displays, using an I2C 
+	  backpack.
+
+	    Sources: https://github.com/arthur-liberman/linux_openvfd
+
 menuconfig PARPORT_PANEL
 	tristate "Parallel port LCD/Keypad Panel support"
 	depends on PARPORT
