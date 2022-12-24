@@ -185,6 +185,11 @@ config ICPLUS_PHY
 	help
 	  Currently supports the IP175C and IP1001 PHYs.
 
+config JLSEMI_JL2XX1_PHY
+	tristate "JLSemi JL2XX1 PHYs"
+	help
+	  Currently supports the JLSemi jl2xx1 PHYs.
+
 config LXT_PHY
 	tristate "Intel LXT PHYs"
 	help
