@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * meson-gxbb-beelink-mini-mx.dts
+ * Copyright (c) 2022 unifreq
+ */
+
+/dts-v1/;
+
+#include "meson-gxbb-vega-s95.dtsi"
+
+/ {
+	compatible = "azw,mini-mx", "amlogic,meson-gxbb";
+	model = "Beelink Mini MX";
+};
+
+&ethmac {
+
+	amlogic,tx-delay-ns = <4>;
+
+};
+
