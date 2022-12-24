@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2016 Endless Computers, Inc.
+ * Author: Carlo Caione <carlo@endlessm.com>
+ */
+
+/dts-v1/;
+
+#include "meson-gxl-s905w-p281.dts"
+
+/ {
+	compatible = "amlogic,x7-5g", "amlogic,s905l2", "amlogic,meson-gxl";
+	model = "Amlogic Meson GXL (S905L2) X7 5G Tv Box";
+};
+
+// the gpu in the S905L2 has one pp core less
+// (i.e. only two in total) than the one in the other S905X/W
+&mali {
+	interrupts = <GIC_SPI 160 IRQ_TYPE_LEVEL_HIGH>,
+		<GIC_SPI 161 IRQ_TYPE_LEVEL_HIGH>,
+		<GIC_SPI 162 IRQ_TYPE_LEVEL_HIGH>,
+		<GIC_SPI 163 IRQ_TYPE_LEVEL_HIGH>,
+		<GIC_SPI 164 IRQ_TYPE_LEVEL_HIGH>,
+		<GIC_SPI 165 IRQ_TYPE_LEVEL_HIGH>,
+		<GIC_SPI 166 IRQ_TYPE_LEVEL_HIGH>,
+		<GIC_SPI 167 IRQ_TYPE_LEVEL_HIGH>;
+	interrupt-names = "gp", "gpmmu", "pp", "pmu",
+		"pp0", "ppmmu0", "pp1", "ppmmu1";
+};
