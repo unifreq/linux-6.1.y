@@ -573,11 +573,11 @@
 		reg = <0x0>;
 	};
 };
-
+/*
 &gic {
 	mbi-ranges = <202 56>, <264 56>;
 };
-
+*/
 &pcie2x1 {
 	reset-gpios = <&gpio2 RK_PD6 GPIO_ACTIVE_HIGH>;
 	vpcie3v3-supply = <&vcc3v3_sys>;

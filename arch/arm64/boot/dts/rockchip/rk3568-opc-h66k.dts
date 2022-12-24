@@ -34,11 +34,11 @@
 &gmac1 {
 	status = "disabled";
 };
-
+/*
 &gic {
 	mbi-ranges = <105 20>, <202 56>, <264 56>;
 };
-
+*/
 &pcie3x1 {
 	vpcie3v3-supply = <&vcc3v3_pcie>;
 };

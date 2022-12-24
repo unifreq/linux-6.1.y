@@ -229,11 +229,11 @@
 &sata1 {
 	status = "okay";
 };
-
+/*
 &gic {
 	mbi-ranges = <202 56>, <264 56>;
 };
-
+*/
 /* rtl8125 1 */
 &pcie2x1 {
 	reset-gpios = <&gpio1 RK_PB2 GPIO_ACTIVE_HIGH>;
