@@ -11,6 +11,7 @@
 #include "debug.h"
 #include "core.h"
 #include "common.h"
+#include "firmware.h"
 #include "of.h"
 
 static int brcmf_of_get_country_codes(struct device *dev,
@@ -65,6 +66,36 @@ static int brcmf_of_get_country_codes(struct device *dev,
 	return 0;
 }
 
+/* TODO: FIXME: Use DT */
+static void brcmf_of_probe_cc(struct device *dev,
+			      struct brcmf_mp_device *settings)
+{
+	static struct brcmfmac_pd_cc_entry netgear_r8000_cc_ent[] = {
+		{ "JP", "JP", 78 },
+		{ "US", "Q2", 86 },
+	};
+	struct brcmfmac_pd_cc_entry *cc_ent = NULL;
+	int table_size = 0;
+
+	if (of_machine_is_compatible("netgear,r8000")) {
+		cc_ent = netgear_r8000_cc_ent;
+		table_size = ARRAY_SIZE(netgear_r8000_cc_ent);
+	}
+
+	if (cc_ent && table_size) {
+		struct brcmfmac_pd_cc *cc;
+		size_t memsize;
+
+		memsize = table_size * sizeof(struct brcmfmac_pd_cc_entry);
+		cc = devm_kzalloc(dev, sizeof(*cc) + memsize, GFP_KERNEL);
+		if (!cc)
+			return;
+		cc->table_size = table_size;
+		memcpy(cc->table, cc_ent, memsize);
+		settings->country_codes = cc;
+	}
+}
+
 void brcmf_of_probe(struct device *dev, enum brcmf_bus_type bus_type,
 		    struct brcmf_mp_device *settings)
 {
@@ -105,6 +136,8 @@ void brcmf_of_probe(struct device *dev, enum brcmf_bus_type bus_type,
 		of_node_put(root);
 	}
 
+	brcmf_of_probe_cc(dev, settings);
+
 	if (!np || !of_device_is_compatible(np, "brcm,bcm4329-fmac"))
 		return;
 
@@ -134,4 +167,39 @@ void brcmf_of_probe(struct device *dev, enum brcmf_bus_type bus_type,
 	sdio->oob_irq_supported = true;
 	sdio->oob_irq_nr = irq;
 	sdio->oob_irq_flags = irqf;
+}
+
+struct brcmf_firmware_mapping *
+brcmf_of_fwnames(struct device *dev, u32 *fwname_count)
+{
+	struct device_node *np = dev->of_node;
+	struct brcmf_firmware_mapping *fwnames;
+	struct device_node *map_np, *fw_np;
+	int of_count;
+	int count = 0;
+
+	map_np = of_get_child_by_name(np, "firmwares");
+	of_count = of_get_child_count(map_np);
+	if (!of_count)
+		return NULL;
+
+	fwnames = devm_kcalloc(dev, of_count,
+			       sizeof(struct brcmf_firmware_mapping),
+			       GFP_KERNEL);
+
+	for_each_child_of_node(map_np, fw_np)
+	{
+		struct brcmf_firmware_mapping *cur = &fwnames[count];
+
+		if (of_property_read_u32(fw_np, "chipid", &cur->chipid) ||
+		    of_property_read_u32(fw_np, "revmask", &cur->revmask))
+			continue;
+		cur->fw_base = of_get_property(fw_np, "fw_base", NULL);
+		if (cur->fw_base)
+			count++;
+	}
+
+	*fwname_count = count;
+
+	return count ? fwnames : NULL;
 }
