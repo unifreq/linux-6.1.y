@@ -1,0 +1,52 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2022 Flippy
+ */
+
+/dts-v1/;
+
+#include "meson-gxm-q200.dts"
+
+/ {
+	compatible = "tanix,tx9-pro", "amlogic,gxm";
+	model = "Tanix TX9 Pro";
+	
+	openvfd {
+		compatible = "open,vfd";
+		dev_name = "openvfd";
+                status = "okay";
+        };
+};
+
+&ethmac {
+	snps,aal;
+	snps,txpbl = <0x8>;
+	snps,rxpbl = <0x8>;
+};
+
+&sd_emmc_a {
+        status = "okay";
+};
+
+&sd_emmc_b {
+        status = "okay";
+};
+
+&sd_emmc_c {
+        status = "okay";
+};
+
+&uart_A {
+	status = "okay";
+	pinctrl-0 = <&uart_a_pins>, <&uart_a_cts_rts_pins>;
+	pinctrl-names = "default";
+	uart-has-rtscts;
+
+	bluetooth {
+		compatible = "brcm,bcm43438-bt";
+		shutdown-gpios = <&gpio GPIOX_17 GPIO_ACTIVE_HIGH>;
+		max-speed = <2000000>;
+		clocks = <&wifi32k>;
+		clock-names = "lpo";
+	};
+};
