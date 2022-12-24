@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2016 Endless Computers, Inc.
+ * Author: Carlo Caione <carlo@endlessm.com>
+ */
+
+/dts-v1/;
+
+#include "meson-gxl-s905x-p212.dts"
+
+/ {
+	compatible = "zte,b860h", "amlogic,p212";
+	model = "ZTE B860H";
+
+};
+
+&sdio_pwrseq {
+	reset-gpios = <&gpio GPIODV_27 GPIO_ACTIVE_LOW>;
+};
