@@ -707,6 +707,8 @@ source "drivers/crypto/chelsio/Kconfig"
 
 source "drivers/crypto/virtio/Kconfig"
 
+source "drivers/crypto/cryptodev-linux/Kconfig"
+
 config CRYPTO_DEV_BCM_SPU
 	tristate "Broadcom symmetric crypto/hash acceleration support"
 	depends on ARCH_BCM_IPROC

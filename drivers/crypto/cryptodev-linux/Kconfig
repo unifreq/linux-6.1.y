@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: GPL-2.0-only
+config CRYPTO_DEV_CRYPTODEV_LINUX
+	tristate "Cryptodev-Linux driver"
+	default m
+	help
+	  Cryptodev-linux is a device that allows access to Linux kernel cryptographic drivers; thus allowing of userspace applications to take advantage of hardware accelerators. Cryptodev-linux is implemented as a standalone module that requires no dependencies other than a stock linux kernel. Its API is compatible with OpenBSD's cryptodev userspace API (/dev/crypto).
