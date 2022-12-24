@@ -1,0 +1,343 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
+ * Copyright (c) 2021 Radxa Limited.
+ *
+ */
+
+/dts-v1/;
+
+#include "rk3568-radxa-rock-3-compute-module-plus.dtsi"
+
+/ {
+	model = "Radxa E25";
+	compatible = "radxa,e25", "rockchip,rk3568";
+
+	alias {
+		led-boot = &led_surround_red;
+		led-failsafe = &led_surround_red;
+		led-running = &led_surround_red;
+		led-upgrade = &led_surround_red;
+	};
+
+	vcc5v0_otg: vcc5v0-otg-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc5v0_otg";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		//regulator-always-on;
+		//regulator-boot-on;
+
+		enable-active-high;
+		gpio = <&gpio0 RK_PB7 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc5v0_otg_en>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
+	/* VCC3V3_PI6C_05: for pcie clock source: AU5411 */
+	vcc3v3_pcie_clk: vcc3v3-pcie-clk {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3-pcie-clk";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+		regulator-boot-on;
+
+		enable-active-high;
+		gpios = <&gpio0 RK_PC7 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc3v3_pcie_clk_en>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
+	/* low:3.3v:wifi, high:3.8v:4G (default low) */
+	vcc3vx_minipcie_wifi_or_4g: vcc3vx-minipcie-wifi-or-4g {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3vx_minipcie_wifi_or_4g";
+		regulator-always-on;
+		regulator-boot-on;
+
+		enable-active-low;
+		gpio = <&gpio3 RK_PA0 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc3vx_minipcie_wifi_or_4g_en>;
+	};
+
+	/* vcc3v3 to minipcie */
+	vcc3v3_minipcie: vcc3v3-minipcie {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_minipcie";
+
+		enable-active-high;
+		gpio = <&gpio3 RK_PA7 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc3v3_minipcie_en>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
+	/* vcc3v3 to m.2 ngff */
+	vcc3v3_m2: vcc3v3-m2 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_m2";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-boot-on;
+		regulator-always-on;
+
+		enable-active-high;
+		gpio = <&gpio0 RK_PC5 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc3v3_m2_en>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
+	lte_modem_pwren: lte_modem_pwren {
+		compatible = "regulator-fixed";
+		regulator-name = "lte_modem_pwren";
+		regulator-always-on;
+		regulator-boot-on;
+
+		enable-active-high;
+		gpio = <&gpio0 RK_PD6 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&em05_power_en>;
+	};
+/*
+	em05_modem: em05-modem {
+		compatible = "lte-em05-modem-platdata";
+		pinctrl-names = "default";
+		pinctrl-0 = <&em05_power_en &em05_airplane_mode &em05_reset>;
+		em05,power-gpio = <&gpio0 RK_PD6 GPIO_ACTIVE_HIGH>;
+		em05,reset-gpio = <&gpio0 RK_PD5 GPIO_ACTIVE_HIGH>;
+		em05,airplane-gpio = <&gpio1 RK_PA4 GPIO_ACTIVE_HIGH>;
+	};
+*/
+	gpio_leds: gpio-leds {
+		led_surround_red: led-surround-red {
+			gpios = <&gpio0 RK_PC0 GPIO_ACTIVE_HIGH>;
+			label = "surround:red";
+			linux,default-trigger = "timer";
+			default-state = "on";
+			pinctrl-0 = <&led_surround_red_en>;
+   	    	};
+
+       		led_surround_green: led-surround-green {
+			gpios = <&gpio0 RK_PC1 GPIO_ACTIVE_HIGH>;
+			label = "surround:green";
+			linux,default-trigger = "heartbeat";
+			default-state = "on";
+			pinctrl-0 = <&led_surround_green_en>;
+       		};
+
+       		led_surround_blue: led-surround-blue {
+			gpios = <&gpio4 RK_PC5 GPIO_ACTIVE_HIGH>;
+			label = "surround:blue";
+			linux,default-trigger = "default-on";
+			default-state = "on";
+			pinctrl-0 = <&led_surround_blue_en>;
+       		};
+	};
+};
+
+&combphy0 {
+	status = "okay";
+};
+
+&combphy1 {
+	rockchip,dis-u3otg1-port;
+	status = "okay";
+};
+
+&combphy2 {
+	status = "okay";
+};
+
+//sdcard
+&sdmmc0 {
+	max-frequency = <50000000>;
+	bus-width = <4>;
+	cap-sd-highspeed;
+	//sd-uhs-sdr104;
+	cd-gpios = <&gpio0 RK_PA4 GPIO_ACTIVE_LOW>;
+	disable-wp;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc0_bus4 &sdmmc0_clk &sdmmc0_cmd &sdmmc0_det>;
+	vmmc-supply = <&vcc3v3_sd>;
+	vqmmc-supply = <&vccio_sd>;
+	status = "okay";
+};
+
+&uart2 {
+	status = "okay";
+};
+
+&usb_host0_ehci {
+	status = "okay";
+};
+
+&usb_host0_ohci {
+	status = "okay";
+};
+
+&usb_host0_xhci {
+	extcon = <&usb2phy0>;
+	status = "okay";
+};
+
+&usb_host1_ehci {
+	status = "okay";
+};
+
+&usb_host1_ohci {
+	status = "okay";
+};
+
+&usb_host1_xhci {
+	status = "disabled";
+};
+
+&usb2phy0 {
+	status = "okay";
+};
+
+&usb2phy0_host {
+	phy-supply = <&vcc5v0_otg>;
+	status = "okay";
+};
+
+&usb2phy0_otg {
+	phy-supply = <&vcc5v0_otg>;
+	status = "okay";
+};
+
+&usb2phy1 {
+	status = "okay";
+};
+
+&usb2phy1_host {
+	phy-supply = <&vcc5v0_otg>;
+	status = "okay";
+};
+
+&usb2phy1_otg {
+	phy-supply = <&vcc5v0_otg>;
+	status = "okay";
+};
+
+&sata1 {
+	status = "okay";
+};
+
+&gic {
+	mbi-ranges = <202 56>, <264 56>;
+};
+
+/* rtl8125 1 */
+&pcie2x1 {
+	reset-gpios = <&gpio1 RK_PB2 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc_3v3>;
+	pinctrl-0 = <&pcie20m2_pins>; 
+	status = "okay";
+};
+
+&pcie30phy {
+	data-lanes = <1 2>;
+	status = "okay";
+};
+
+/* mini pcie */
+&pcie3x1 {
+	num-lans = <1>;
+	reset-gpios = <&gpio0 RK_PC3 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc3v3_minipcie>;
+	pinctrl-0 = <&pcie30x1m0_pins>; 
+	status = "okay";
+};
+
+/* rtl8125 2 */
+&pcie3x2 {
+	num-lans = <1>;
+	reset-gpios = <&gpio2 RK_PD6 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc_3v3>;
+	pinctrl-0 = <&pcie30x2m1_pins>; 
+	status = "okay";
+};
+
+&pwm1 {
+	status = "disabled";
+	pinctrl-names = "active";
+	pinctrl-0 = <&pwm1m0_pins>;
+};
+
+&pwm2 {
+	status = "disabled";
+	pinctrl-names = "active";
+	pinctrl-0 = <&pwm2m0_pins>;
+};
+
+&pwm12 {
+	status = "disabled";
+	pinctrl-names = "active";
+	pinctrl-0 = <&pwm12m1_pins>;
+};
+
+&pinctrl {
+	usb {
+		vcc5v0_otg_en: vcc5v0-otg-en {
+			rockchip,pins = <0 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	pcie {
+		vcc3v3_pcie_clk_en: vcc3v3-pcie-clk-en {
+			rockchip,pins = <0 RK_PC7 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		vcc3vx_minipcie_wifi_or_4g_en: vcc3vx-minipcie-wifi-or-4g-en {
+			rockchip,pins = <3 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		vcc3v3_minipcie_en: vcc3v3-minipcie-en {
+			rockchip,pins = <3 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		vcc3v3_m2_en: vcc3v3-m2-en {
+			rockchip,pins = <0 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	lte-em05-modem {
+		em05_airplane_mode: em05-airplane-mode {
+			rockchip,pins = <1 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		em05_power_en: em05-power-en {
+			rockchip,pins = <0 RK_PD6 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		em05_reset: em05-reset {
+			rockchip,pins = <0 RK_PD5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	leds {
+		led_surround_red_en: led-surround-red-en {
+			rockchip,pins = <0 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		led_surround_green_en: led-surround-green-en {
+			rockchip,pins = <0 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		led_surround_blue_en: led-surround-blue-en {
+			rockchip,pins = <4 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};
+
+&led_user {
+	linux,default-trigger = "none";
+	default-state = "off";
+};
