@@ -1,0 +1,15 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2017 PINE64
+ */
+
+/dts-v1/;
+#include "rk3328-beikeyun-1296mhz.dts"
+
+&cpu0_opp_table {
+
+	opp-1296000000 {
+		status = "disabled";
+	};
+
+};
