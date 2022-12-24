@@ -1133,6 +1133,14 @@ config SOCIONEXT_SYNQUACER_PREITS
 
 	  If unsure, say Y.
 
+config ROCKCHIP_ERRATUM_114514
+	bool "Rockchip RK3568 force no_local_cache"
+	default y
+	help
+	  They consider this as a SoC implement design instead of a bug.
+
+	  If unsure, say Y.
+
 endmenu # "ARM errata workarounds via the alternatives framework"
 
 choice
