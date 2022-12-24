@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Author: flippy <flippy@sina.com>
+ */
+
+/dts-v1/;
+
+#include "meson-sm1-tx3-bz.dts"
+
+/ {
+	model = "Tanix TX3 (BZ) @ 2208Mhz";
+};
+
+&cpu_opp_table {
+
+	opp-2208000000 {
+		opp-hz = /bits/ 64 <2208000000>;
+		opp-microvolt = <1021000>;
+	};
+};

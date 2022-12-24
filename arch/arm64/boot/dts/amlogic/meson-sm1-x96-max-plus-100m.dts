@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2019 BayLibre, SAS
+ * Author: flippy <flippy@sina.com>
+ */
+/dts-v1/;
+
+#include "meson-sm1-x96-max-plus.dts"
+
+/ {
+	model = "AMedia X96 Max+ (eth0 speed:100Mb/s)";
+};
+
+&external_phy  {
+	max-speed = <100>;
+};

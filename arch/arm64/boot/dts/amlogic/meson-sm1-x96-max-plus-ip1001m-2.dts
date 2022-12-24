@@ -1,0 +1,44 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2019 BayLibre SAS. All rights reserved.
+ * Copyright (c) 2020 Christian Hewitt <christianshewitt@gmail.com>
+ * Copyright (c) 2022 flippy <uniqfreq@gmail.com>
+ */
+
+/dts-v1/;
+
+#include "meson-sm1-x96-max-plus-oc.dts"
+
+&ethmac {
+	phy-mode = "rgmii-txid";
+	/* After a simple testing, temporarily set rx-internal-delay-ps to 2800 ps, 
+	 * if anyone finds a more suitable value please let me know.
+	 */
+	rx-internal-delay-ps = <2800>;
+};
+
+&ext_mdio {
+	/delete-node/ ethernet-phy@0;
+
+	external_phy: ethernet-phy@1 {
+		/* ICPlus IP1001M: 0x02430d91 */
+		reg = <1>;
+		max-speed = <1000>;
+
+		reset-assert-us = <10000>;
+		reset-deassert-us = <80000>;
+		reset-gpios = <&gpio GPIOZ_15 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>;
+
+		interrupt-parent = <&gpio_intc>;
+		/* MAC_INTR on GPIOZ_14 */
+		interrupts = <26 IRQ_TYPE_LEVEL_LOW>;
+	};
+};
+
+&bluetooth {
+	/* AM7256 module is based on broadcom brcm4354-sdio, 
+	 * so maybe bluetooth is available.
+	 */
+	compatible = "brcm,bcm43438-bt";
+	status = "okay";
+};

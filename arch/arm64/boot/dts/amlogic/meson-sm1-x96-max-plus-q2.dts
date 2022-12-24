@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2022 danboid, flippy
+ */
+
+/dts-v1/;
+
+#include "meson-sm1-h96-max.dts"
+
+/ {
+	compatible = "x96-max-plus-q2,x96-air-q1000", "amlogic,sm1";
+	model = "X96 MAX PLUS Q2, X96 Air Q1000";
+
+};
+
+&uart_A {
+	bluetooth {
+		compatible = "qcom,qca9377-bt";
+		enable-gpios = <&gpio GPIOX_17 GPIO_ACTIVE_HIGH>;
+	};
+};
