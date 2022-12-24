@@ -385,6 +385,20 @@ config HW_RANDOM_ROCKCHIP
 
 	  If unsure, say Y.
 
+config HW_RANDOM_ROCKCHIP_RK3568
+        tristate "Rockchip RK3568 True Random Number Generator"
+        depends on HW_RANDOM && (ARCH_ROCKCHIP || COMPILE_TEST)
+        depends on HAS_IOMEM
+        default HW_RANDOM
+        help
+          This driver provides kernel-side support for the True Random Number
+          Generator hardware found on some Rockchip SoC like RK3566 or RK3568.
+
+          To compile this driver as a module, choose M here: the
+          module will be called rockchip-rng.
+
+          If unsure, say Y.
+
 config HW_RANDOM_PIC32
 	tristate "Microchip PIC32 Random Number Generator support"
 	depends on HW_RANDOM && MACH_PIC32
