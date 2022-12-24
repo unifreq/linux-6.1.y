@@ -1,0 +1,59 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2016 Endless Computers, Inc.
+ * Author: Carlo Caione <carlo@endlessm.com>, flippy
+*/
+
+/dts-v1/;
+
+#include "meson-gxm.dtsi"
+#include "meson-gx-p23x-q20x.dtsi"
+
+/ {
+        compatible = "amlogic,q201", "amlogic,s912", "amlogic,meson-gxm";
+        model = "T95Z Plus";
+
+        openvfd {
+                compatible = "open,vfd";
+                dev_name = "openvfd";
+                status = "okay";
+        };
+};
+
+&ethmac {
+        phy-mode = "rgmii";
+        pinctrl-0 = <&eth_pins>;
+        pinctrl-names = "default";
+        reg = <0x0 0xc9410000 0x0 0x10000
+                0x0 0xc8834540 0x0 0x8
+                0x0 0xc8834558 0x0 0xc>;
+
+        /* Select external PHY by default */
+        phy-handle = <&external_phy>;
+
+        amlogic,tx-delay-ns = <2>;
+
+        /* External PHY reset is shared with internal PHY Led signals */
+        snps,reset-gpio = <&gpio GPIOZ_14 0>;
+        snps,reset-delays-us = <0 10000 1000000>;
+        snps,reset-active-low;
+};
+
+&external_mdio {
+        external_phy: ethernet-phy@0 {
+                /* T95Z Plus's phy has phy id = 0381:5c11 */
+                compatible = "ethernet-phy-id0381.5c11", "ethernet-phy-ieee802.3-c22";
+                /* T95Z Plus's phy has phy addr = 1 */
+                reg = <1>;
+                max-speed = <1000>;
+                interrupt-parent = <&gpio_intc>;
+                interrupts = <25 IRQ_TYPE_LEVEL_LOW>;
+        };
+};
+
+&sd_emmc_a {
+        brcmf: wifi@1 {
+                reg = <1>;
+                compatible = "brcm,bcm4329-fmac";
+        };
+};
