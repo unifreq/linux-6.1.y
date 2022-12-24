@@ -3369,6 +3369,8 @@ void regulatory_hint_country_ie(struct wiphy *wiphy, enum nl80211_band band,
 	enum environment_cap env = ENVIRON_ANY;
 	struct regulatory_request *request = NULL, *lr;
 
+	return;
+
 	/* IE len must be evenly divisible by 2 */
 	if (country_ie_len & 0x01)
 		return;
@@ -3620,6 +3622,7 @@ static bool is_wiphy_all_set_reg_flag(enum ieee80211_regulatory_flags flag)
 
 void regulatory_hint_disconnect(void)
 {
+	return;
 	/* Restore of regulatory settings is not required when wiphy(s)
 	 * ignore IE from connected access point but clearance of beacon hints
 	 * is required when wiphy(s) supports beacon hints.
