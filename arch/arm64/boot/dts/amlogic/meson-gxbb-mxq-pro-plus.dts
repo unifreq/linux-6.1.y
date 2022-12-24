@@ -1,0 +1,57 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2021 Flippy
+ */
+
+/dts-v1/;
+
+#include "meson-gxbb-vega-s95.dtsi"
+
+/ {
+	compatible = "crocon,mxq-pro-plus", "amlogic,meson-gxbb";
+	model = "MXQ Pro+ (S905)";
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+                /* 32 MiB reserved for ARM Trusted Firmware (BL32) */
+                secmon_reserved_bl32: secmon@5300000 {
+                        reg = <0x0 0x05300000 0x0 0x2000000>;
+                        no-map;
+                };
+
+		/* 2MiB reserved for ARM Trusted Firmware (BL31) */
+		secmon: secmon {
+			reg = <0x0 0x10000000 0x0 0x200000>;
+			no-map;
+		};
+	};
+
+	memory@0 {
+		device_type = "memory";
+		/*
+		 * The first 16MiB of the DDR memory zone
+		 * is reserved to the Hardware ROM Firmware
+		 */
+		linux,usable-memory = <0x0 0x1000000 0x0 0x7f000000>;
+	};
+};
+
+&ethmac {
+	amlogic,tx-delay-ns = <4>;
+	snps,aal;
+	snps,txpbl = <0x8>;
+	snps,rxpbl = <0x8>;
+};
+
+/*
+&eth_phy0 {
+	interrupts = <25 IRQ_TYPE_LEVEL_LOW>;
+};
+*/
+
+&sd_emmc_c {
+	max-frequency = <200000000>;	
+};
