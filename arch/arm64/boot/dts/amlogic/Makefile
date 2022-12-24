@@ -86,6 +86,7 @@ dtb-$(CONFIG_ARCH_MESON) += meson-gxm-khadas-vim2.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-gxm-mecool-kiii-pro.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-gxm-minix-neo-u9h.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-gxm-nexbox-a1.dtb
+dtb-$(CONFIG_ARCH_MESON) += meson-gxm-nexbox-a2.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-gxm-octopus-planet.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-gxm-fake-octopus-planet.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-gxm-q200.dtb
