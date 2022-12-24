@@ -977,6 +977,9 @@ static const struct of_device_id rockchip_rga_match[] = {
 		.compatible = "rockchip,rk3288-rga",
 	},
 	{
+		.compatible = "rockchip,rk3568-rga",
+	},
+	{
 		.compatible = "rockchip,rk3399-rga",
 	},
 	{},
