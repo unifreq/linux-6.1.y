@@ -170,6 +170,20 @@
 			};
 		};
 	};
+
+        vddgpu: regulator-vddgpu {
+                compatible = "regulator-fixed";
+                regulator-name = "mali";
+                regulator-min-microvolt = <800000>;
+                regulator-max-microvolt = <800000>;
+                vin-supply = <&vcc_5v>;
+                regulator-boot-on;
+                regulator-always-on;
+        };
+};
+
+&mali {
+        mali-supply=<&vddgpu>;
 };
 
 &acodec {
@@ -266,4 +280,35 @@
 
 &tohdmitx {
 	status = "okay";
+};
+
+/* SDIO */
+&sd_emmc_a {
+        //max-frequency = <200000000>;
+        //sd-uhs-sdr104;
+        max-frequency = <50000000>;
+        sd-uhs-ddr50;
+        //sd-uhs-sdr50;
+        //max-frequency = <100000000>;
+};
+
+/* SD CARD */
+&sd_emmc_b {
+        cap-sd-highspeed;
+        max-frequency = <50000000>;
+};
+
+/* EMMC */
+&sd_emmc_c {
+        mmc-hs200-1_8v;
+        max-frequency = <200000000>;
+};
+ 
+&ethmac {
+	snps,aal;
+	snps,rxpbl = <0x8>;
+	snps,txpbl = <0x8>;
+
+	rx-fifo-depth = <4096>;
+	tx-fifo-depth = <4096>;
 };
