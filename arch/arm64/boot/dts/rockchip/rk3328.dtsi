@@ -1070,6 +1070,7 @@
 		clock-names = "hclk_master", "hclk_slave", "sclk";
 		resets = <&cru SRST_CRYPTO>;
 		reset-names = "crypto-rst";
+		status = "disabled";
 	};
 
 	pinctrl: pinctrl {
