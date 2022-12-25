@@ -235,6 +235,10 @@
 	status = "okay";
 };
 
+&crypto {
+	status = "okay";
+};
+
 &hdmi {
 	status = "okay";
 };

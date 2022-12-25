@@ -213,6 +213,10 @@
 	status = "okay";
 };
 
+&crypto {
+	status = "okay";
+};
+
 &hdmi {
 	status = "okay";
 	#sound-dai-cells = <0>;
