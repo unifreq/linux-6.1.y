@@ -45,6 +45,29 @@
 		spi3 = &spi3;
 	};
 
+	reserved_memory: reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		rknpu_reserved: rknpu {
+			compatible = "shared-dma-pool";
+			inactive;
+			reusable;
+			size = <0x0 0x20000000>;
+			alignment = <0x0 0x1000>;
+		};
+
+		ramoops: ramoops@110000 {
+			compatible = "ramoops";
+			reg = <0x0 0x110000 0x0 0xf0000>;
+			record-size = <0x20000>;
+			console-size = <0x80000>;
+			ftrace-size = <0x00000>;
+			pmsg-size = <0x50000>;
+		};
+	};
+
 	cpus {
 		#address-cells = <2>;
 		#size-cells = <0>;
