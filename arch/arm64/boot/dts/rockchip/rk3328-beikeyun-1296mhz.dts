@@ -214,7 +214,7 @@
 };
 
 &crypto {
-	status = "okay";
+	status = "disabled";
 };
 
 &hdmi {
