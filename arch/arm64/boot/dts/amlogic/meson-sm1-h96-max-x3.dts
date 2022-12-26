@@ -221,9 +221,31 @@
 };
 
 &cpu_opp_table {
+	opp-100000000 {
+		status = "disabled";
+	};
+
+	opp-250000000 {
+		status = "disabled";
+	};
+
+	opp-500000000 {
+		status = "disabled";
+	};
+
+	opp-750000000 {
+		opp-hz = /bits/ 64 <750000000>;
+		opp-microvolt = <750000>;
+	};
+
 	opp-2016000000 {
 		opp-hz = /bits/ 64 <2016000000>;
 		opp-microvolt = <1000000>;
+	};
+
+	opp-2100000000 {
+		opp-hz = /bits/ 64 <2100000000>;
+		opp-microvolt = <1011000>;
 	};
 };
 
