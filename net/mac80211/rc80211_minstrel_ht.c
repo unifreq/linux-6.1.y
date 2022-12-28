@@ -580,6 +580,14 @@ minstrel_ht_set_best_prob_rate(struct minstrel_ht_sta *mi, u16 *dest, u16 index)
 	int cur_tp_avg, cur_group, cur_idx;
 	int max_gpr_group, max_gpr_idx;
 	int max_gpr_tp_avg, max_gpr_prob;
+	int min_dur;
+
+	min_dur = max(minstrel_get_duration(mi->max_tp_rate[0]),
+		      minstrel_get_duration(mi->max_tp_rate[1]));
+
+	/* make the rate at least 18% slower than max tp rates */
+	if (minstrel_get_duration(index) <= min_dur * 19 / 16)
+		return;
 
 	cur_group = MI_RATE_GROUP(index);
 	cur_idx = MI_RATE_IDX(index);
@@ -599,11 +607,6 @@ minstrel_ht_set_best_prob_rate(struct minstrel_ht_sta *mi, u16 *dest, u16 index)
 
 	if (minstrel_ht_is_legacy_group(MI_RATE_GROUP(index)) &&
 	    !minstrel_ht_is_legacy_group(max_tp_group))
-		return;
-
-	/* skip rates faster than max tp rate with lower prob */
-	if (minstrel_get_duration(mi->max_tp_rate[0]) > minstrel_get_duration(index) &&
-	    mrs->prob_avg < max_tp_prob)
 		return;
 
 	max_gpr_group = MI_RATE_GROUP(mg->max_group_prob_rate);
@@ -661,40 +664,6 @@ minstrel_ht_assign_best_tp_rates(struct minstrel_ht_sta *mi,
 		}
 	}
 
-}
-
-/*
- * Try to increase robustness of max_prob rate by decrease number of
- * streams if possible.
- */
-static inline void
-minstrel_ht_prob_rate_reduce_streams(struct minstrel_ht_sta *mi)
-{
-	struct minstrel_mcs_group_data *mg;
-	int tmp_max_streams, group, tmp_idx, tmp_prob;
-	int tmp_tp = 0;
-
-	if (!mi->sta->deflink.ht_cap.ht_supported)
-		return;
-
-	group = MI_RATE_GROUP(mi->max_tp_rate[0]);
-	tmp_max_streams = minstrel_mcs_groups[group].streams;
-	for (group = 0; group < ARRAY_SIZE(minstrel_mcs_groups); group++) {
-		mg = &mi->groups[group];
-		if (!mi->supported[group] || group == MINSTREL_CCK_GROUP)
-			continue;
-
-		tmp_idx = MI_RATE_IDX(mg->max_group_prob_rate);
-		tmp_prob = mi->groups[group].rates[tmp_idx].prob_avg;
-
-		if (tmp_tp < minstrel_ht_get_tp_avg(mi, group, tmp_idx, tmp_prob) &&
-		   (minstrel_mcs_groups[group].streams < tmp_max_streams)) {
-				mi->max_prob_rate = mg->max_group_prob_rate;
-				tmp_tp = minstrel_ht_get_tp_avg(mi, group,
-								tmp_idx,
-								tmp_prob);
-		}
-	}
 }
 
 static u16
@@ -769,7 +738,8 @@ minstrel_ht_calc_rate_stats(struct minstrel_priv *mp,
 	unsigned int cur_prob;
 
 	if (unlikely(mrs->attempts > 0)) {
-		cur_prob = MINSTREL_FRAC(mrs->success, mrs->attempts);
+		cur_prob = MINSTREL_FRAC(mrs->success + mrs->last_success,
+					 mrs->attempts + mrs->last_attempts);
 		minstrel_filter_avg_add(&mrs->prob_avg,
 					&mrs->prob_avg_1, cur_prob);
 		mrs->att_hist += mrs->attempts;
@@ -1175,8 +1145,6 @@ minstrel_ht_update_stats(struct minstrel_priv *mp, struct minstrel_ht_sta *mi)
 
 	mi->max_prob_rate = tmp_max_prob_rate;
 
-	/* Try to increase robustness of max_prob_rate*/
-	minstrel_ht_prob_rate_reduce_streams(mi);
 	minstrel_ht_refill_sample_rates(mi);
 
 #ifdef CONFIG_MAC80211_DEBUGFS
@@ -1255,7 +1223,7 @@ minstrel_ht_ri_txstat_valid(struct minstrel_priv *mp,
 }
 
 static void
-minstrel_downgrade_rate(struct minstrel_ht_sta *mi, u16 *idx, bool primary)
+minstrel_downgrade_prob_rate(struct minstrel_ht_sta *mi, u16 *idx)
 {
 	int group, orig_group;
 
@@ -1270,11 +1238,7 @@ minstrel_downgrade_rate(struct minstrel_ht_sta *mi, u16 *idx, bool primary)
 		    minstrel_mcs_groups[orig_group].streams)
 			continue;
 
-		if (primary)
-			*idx = mi->groups[group].max_group_tp_rate[0];
-		else
-			*idx = mi->groups[group].max_group_tp_rate[1];
-		break;
+		*idx = mi->groups[group].max_group_prob_rate;
 	}
 }
 
@@ -1285,7 +1249,7 @@ minstrel_ht_tx_status(void *priv, struct ieee80211_supported_band *sband,
 	struct ieee80211_tx_info *info = st->info;
 	struct minstrel_ht_sta *mi = priv_sta;
 	struct ieee80211_tx_rate *ar = info->status.rates;
-	struct minstrel_rate_stats *rate, *rate2;
+	struct minstrel_rate_stats *rate;
 	struct minstrel_priv *mp = priv;
 	u32 update_interval = mp->update_interval;
 	bool last, update = false;
@@ -1353,18 +1317,13 @@ minstrel_ht_tx_status(void *priv, struct ieee80211_supported_band *sband,
 		/*
 		 * check for sudden death of spatial multiplexing,
 		 * downgrade to a lower number of streams if necessary.
+		 * only do this for the max_prob_rate to prevent spurious
+		 * rate fluctuations when the link changes suddenly
 		 */
-		rate = minstrel_get_ratestats(mi, mi->max_tp_rate[0]);
+		rate = minstrel_get_ratestats(mi, mi->max_prob_rate);
 		if (rate->attempts > 30 &&
 		    rate->success < rate->attempts / 4) {
-			minstrel_downgrade_rate(mi, &mi->max_tp_rate[0], true);
-			update = true;
-		}
-
-		rate2 = minstrel_get_ratestats(mi, mi->max_tp_rate[1]);
-		if (rate2->attempts > 30 &&
-		    rate2->success < rate2->attempts / 4) {
-			minstrel_downgrade_rate(mi, &mi->max_tp_rate[1], false);
+			minstrel_downgrade_prob_rate(mi, &mi->max_prob_rate);
 			update = true;
 		}
 	}

@@ -805,6 +805,7 @@ static const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
 	[NL80211_ATTR_MLD_ADDR] = NLA_POLICY_EXACT_LEN(ETH_ALEN),
 	[NL80211_ATTR_MLO_SUPPORT] = { .type = NLA_FLAG },
 	[NL80211_ATTR_MAX_NUM_AKM_SUITES] = { .type = NLA_REJECT },
+	[NL80211_ATTR_WIPHY_ANTENNA_GAIN] = { .type = NLA_U32 },
 };
 
 /* policy for the key attributes */
@@ -3514,6 +3515,22 @@ static int nl80211_set_wiphy(struct sk_buff *skb, struct genl_info *info)
 			result = __nl80211_set_channel(rdev, netdev, info, link_id);
 		}
 
+		if (result)
+			goto out;
+	}
+
+	if (info->attrs[NL80211_ATTR_WIPHY_ANTENNA_GAIN]) {
+		int idx, dbi = 0;
+
+		if (!rdev->ops->set_antenna_gain) {
+			result = -EOPNOTSUPP;
+			goto out;
+		}
+
+		idx = NL80211_ATTR_WIPHY_ANTENNA_GAIN;
+		dbi = nla_get_u32(info->attrs[idx]);
+
+		result = rdev->ops->set_antenna_gain(&rdev->wiphy, dbi);
 		if (result)
 			goto out;
 	}
