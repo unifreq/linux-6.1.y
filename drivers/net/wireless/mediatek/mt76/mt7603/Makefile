@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-only
-obj-$(CONFIG_MT7603E) += mt7603e.o
+EXTRA_CFLAGS += -Werror -DCONFIG_MT76_LEDS
+obj-m += mt7603e.o
 
 mt7603e-y := \
 	pci.o soc.o main.o init.o mcu.o \
