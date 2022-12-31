@@ -143,18 +143,6 @@ u32 eth_get_headlen(const struct net_device *dev, const void *data, u32 len)
 }
 EXPORT_SYMBOL(eth_get_headlen);
 
-static inline bool
-eth_check_local_mask(const void *addr1, const void *addr2, const void *mask)
-{
-	const u16 *a1 = addr1;
-	const u16 *a2 = addr2;
-	const u16 *m = mask;
-
-	return (((a1[0] ^ a2[0]) & ~m[0]) |
-		((a1[1] ^ a2[1]) & ~m[1]) |
-		((a1[2] ^ a2[2]) & ~m[2]));
-}
-
 /**
  * eth_type_trans - determine the packet's protocol ID.
  * @skb: received socket data
@@ -186,10 +174,6 @@ __be16 eth_type_trans(struct sk_buff *skb, struct net_device *dev)
 		} else {
 			skb->pkt_type = PACKET_OTHERHOST;
 		}
-
-		if (eth_check_local_mask(eth->h_dest, dev->dev_addr,
-					 dev->local_addr_mask))
-			skb->gro_skip = 1;
 	}
 
 	/*
@@ -531,63 +515,6 @@ int eth_platform_get_mac_address(struct device *dev, u8 *mac_addr)
 }
 EXPORT_SYMBOL(eth_platform_get_mac_address);
 
-static void *nvmem_cell_get_mac_address(struct nvmem_cell *cell)
-{
-	size_t len;
-	void *mac;
-
-	mac = nvmem_cell_read(cell, &len);
-	if (IS_ERR(mac))
-		return mac;
-	if (len != ETH_ALEN) {
-		kfree(mac);
-		return ERR_PTR(-EINVAL);
-	}
-	return mac;
-}
-
-static void *nvmem_cell_get_mac_address_ascii(struct nvmem_cell *cell)
-{
-	size_t len;
-	int ret;
-	void *mac_ascii;
-	u8 *mac;
-
-	mac_ascii = nvmem_cell_read(cell, &len);
-	if (IS_ERR(mac_ascii))
-		return mac_ascii;
-	if (len != ETH_ALEN*2+5) {
-		kfree(mac_ascii);
-		return ERR_PTR(-EINVAL);
-	}
-	mac = kmalloc(ETH_ALEN, GFP_KERNEL);
-	if (!mac) {
-		kfree(mac_ascii);
-		return ERR_PTR(-ENOMEM);
-	}
-	ret = sscanf(mac_ascii, "%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx",
-				&mac[0], &mac[1], &mac[2],
-				&mac[3], &mac[4], &mac[5]);
-	kfree(mac_ascii);
-	if (ret == ETH_ALEN)
-		return mac;
-	kfree(mac);
-	return ERR_PTR(-EINVAL);
-}
-
-static struct nvmem_cell_mac_address_property {
-	char *name;
-	void *(*read)(struct nvmem_cell *);
-} nvmem_cell_mac_address_properties[] = {
-	{
-		.name = "mac-address",
-		.read = nvmem_cell_get_mac_address,
-	}, {
-		.name = "mac-address-ascii",
-		.read = nvmem_cell_get_mac_address_ascii,
-	},
-};
-
 /**
  * platform_get_ethdev_address - Set netdev's MAC address from a given device
  * @dev:	Pointer to the device
@@ -621,23 +548,19 @@ int nvmem_get_mac_address(struct device *dev, void *addrbuf)
 {
 	struct nvmem_cell *cell;
 	const void *mac;
-	struct nvmem_cell_mac_address_property *property;
-	int i;
+	size_t len;
 
-	for (i = 0; i < ARRAY_SIZE(nvmem_cell_mac_address_properties); i++) {
-		property = &nvmem_cell_mac_address_properties[i];
-		cell = nvmem_cell_get(dev, property->name);
-		if (IS_ERR(cell)) {
-			if (i == ARRAY_SIZE(nvmem_cell_mac_address_properties) - 1)
-				return PTR_ERR(cell);
-			continue;
-		}
-		mac = property->read(cell);
-		nvmem_cell_put(cell);
-		break;
-	}
+	cell = nvmem_cell_get(dev, "mac-address");
+	if (IS_ERR(cell))
+		return PTR_ERR(cell);
 
-	if (!is_valid_ether_addr(mac)) {
+	mac = nvmem_cell_read(cell, &len);
+	nvmem_cell_put(cell);
+
+	if (IS_ERR(mac))
+		return PTR_ERR(mac);
+
+	if (len != ETH_ALEN || !is_valid_ether_addr(mac)) {
 		kfree(mac);
 		return -EINVAL;
 	}

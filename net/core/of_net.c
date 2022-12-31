@@ -95,27 +95,6 @@ static int of_get_mac_addr_nvmem(struct device_node *np, u8 *addr)
 	return 0;
 }
 
-static int of_add_mac_address(struct device_node *np, u8* addr)
-{
-	struct property *prop;
-
-	prop = kzalloc(sizeof(*prop), GFP_KERNEL);
-	if (!prop)
-		return -ENOMEM;
-
-	prop->name = "mac-address";
-	prop->length = ETH_ALEN;
-	prop->value = kmemdup(addr, ETH_ALEN, GFP_KERNEL);
-	if (!prop->value || of_update_property(np, prop))
-		goto free;
-
-	return 0;
-free:
-	kfree(prop->value);
-	kfree(prop);
-	return -ENOMEM;
-}
-
 /**
  * of_get_mac_address()
  * @np:		Caller's Device Node
@@ -140,70 +119,28 @@ free:
  * this case, the real MAC is in 'local-mac-address', and 'mac-address' exists
  * but is all zeros.
  *
- * DT can tell the system to increment the mac-address after is extracted by
- * using:
- * - mac-address-increment-byte to decide what byte to increase
- *   (if not defined is increased the last byte)
- * - mac-address-increment to decide how much to increase. The value WILL
- *   overflow to other bytes if the increment is over 255 or the total
- *   increment will exceed 255 of the current byte.
- *   (example 00:01:02:03:04:ff + 1 == 00:01:02:03:05:00)
- *   (example 00:01:02:03:04:fe + 5 == 00:01:02:03:05:03)
- *
  * Return: 0 on success and errno in case of error.
 */
 int of_get_mac_address(struct device_node *np, u8 *addr)
 {
-	u32 inc_idx, mac_inc, mac_val;
 	int ret;
-
-	/* Check first if the increment byte is present and valid.
-	 * If not set assume to increment the last byte if found.
-	 */
-	if (of_property_read_u32(np, "mac-address-increment-byte", &inc_idx))
-		inc_idx = 5;
-	if (inc_idx < 3 || inc_idx > 5)
-		return -EINVAL;
 
 	if (!np)
 		return -ENODEV;
 
 	ret = of_get_mac_addr(np, "mac-address", addr);
 	if (!ret)
-		goto found;
+		return 0;
 
 	ret = of_get_mac_addr(np, "local-mac-address", addr);
 	if (!ret)
-		goto found;
+		return 0;
 
 	ret = of_get_mac_addr(np, "address", addr);
 	if (!ret)
-		goto found;
+		return 0;
 
-	ret = of_get_mac_addr_nvmem(np, addr);
-	if (ret)
-		return ret;
-
-found:
-	if (!of_property_read_u32(np, "mac-address-increment", &mac_inc)) {
-		/* Convert to a contiguous value */
-		mac_val = (addr[3] << 16) + (addr[4] << 8) + addr[5];
-		mac_val += mac_inc << 8 * (5-inc_idx);
-
-		/* Apply the incremented value handling overflow case */
-		addr[3] = (mac_val >> 16) & 0xff;
-		addr[4] = (mac_val >> 8) & 0xff;
-		addr[5] = (mac_val >> 0) & 0xff;
-
-		/* Remove mac-address-increment and mac-address-increment-byte
-		 * DT property to make sure MAC address would not get incremented
-		 * more if this function is stared again. */
-		of_remove_property(np, of_find_property(np, "mac-address-increment", NULL));
-		of_remove_property(np, of_find_property(np, "mac-address-increment-byte", NULL));
-	}
-
-	of_add_mac_address(np, addr);
-	return ret;
+	return of_get_mac_addr_nvmem(np, addr);
 }
 EXPORT_SYMBOL(of_get_mac_address);
 
