@@ -10,51 +10,12 @@
  */
 #include <linux/device.h>
 #include <asm/unaligned.h>
-#include <linux/iopoll.h>
 #include "rk3288_crypto.h"
 
 /*
  * IC can not process zero message hash,
  * so we put the fixed hash out when met zero message.
  */
-
-static bool rk_ahash_need_fallback(struct ahash_request *req)
-{
-	struct scatterlist *sg;
-
-	sg = req->src;
-	while (sg) {
-		if (!IS_ALIGNED(sg->offset, sizeof(u32))) {
-			return true;
-		}
-		if (sg->length % 4) {
-			return true;
-		}
-		sg = sg_next(sg);
-	}
-	return false;
-}
-
-static int rk_ahash_digest_fb(struct ahash_request *areq)
-{
-	struct rk_ahash_rctx *rctx = ahash_request_ctx(areq);
-	struct crypto_ahash *tfm = crypto_ahash_reqtfm(areq);
-	struct rk_ahash_ctx *tfmctx = crypto_ahash_ctx(tfm);
-	struct ahash_alg *alg = __crypto_ahash_alg(tfm->base.__crt_alg);
-	struct rk_crypto_tmp *algt = container_of(alg, struct rk_crypto_tmp, alg.hash);
-
-	algt->stat_fb++;
-
-	ahash_request_set_tfm(&rctx->fallback_req, tfmctx->fallback_tfm);
-	rctx->fallback_req.base.flags = areq->base.flags &
-					CRYPTO_TFM_REQ_MAY_SLEEP;
-
-	rctx->fallback_req.nbytes = areq->nbytes;
-	rctx->fallback_req.src = areq->src;
-	rctx->fallback_req.result = areq->result;
-
-	return crypto_ahash_digest(&rctx->fallback_req);
-}
 
 static bool rk_ahash_need_fallback(struct ahash_request *req)
 {
@@ -112,10 +73,12 @@ static int zero_message_process(struct ahash_request *req)
 	return 0;
 }
 
-static void rk_ahash_reg_init(struct ahash_request *req,
-			      struct rk_crypto_info *dev)
+static void rk_ahash_reg_init(struct ahash_request *req)
 {
 	struct rk_ahash_rctx *rctx = ahash_request_ctx(req);
+	struct crypto_ahash *tfm = crypto_ahash_reqtfm(req);
+	struct rk_ahash_ctx *tctx = crypto_ahash_ctx(tfm);
+	struct rk_crypto_info *dev = tctx->dev;
 	int reg_status;
 
 	reg_status = CRYPTO_READ(dev, RK_CRYPTO_CTRL) |
@@ -232,9 +195,8 @@ static int rk_ahash_export(struct ahash_request *req, void *out)
 
 static int rk_ahash_digest(struct ahash_request *req)
 {
-	struct rk_ahash_rctx *rctx = ahash_request_ctx(req);
-	struct rk_crypto_info *dev;
-	struct crypto_engine *engine;
+	struct rk_ahash_ctx *tctx = crypto_tfm_ctx(req->base.tfm);
+	struct rk_crypto_info *dev = tctx->dev;
 
 	if (rk_ahash_need_fallback(req))
 		return rk_ahash_digest_fb(req);
@@ -242,12 +204,7 @@ static int rk_ahash_digest(struct ahash_request *req)
 	if (!req->nbytes)
 		return zero_message_process(req);
 
-	dev = get_rk_crypto();
-
-	rctx->dev = dev;
-	engine = dev->engine;
-
-	return crypto_transfer_hash_request_to_engine(engine, req);
+	return crypto_transfer_hash_request_to_engine(dev->engine, req);
 }
 
 static void crypto_ahash_dma_start(struct rk_crypto_info *dev, struct scatterlist *sg)
@@ -261,11 +218,12 @@ static void crypto_ahash_dma_start(struct rk_crypto_info *dev, struct scatterlis
 static int rk_hash_prepare(struct crypto_engine *engine, void *breq)
 {
 	struct ahash_request *areq = container_of(breq, struct ahash_request, base);
+	struct crypto_ahash *tfm = crypto_ahash_reqtfm(areq);
 	struct rk_ahash_rctx *rctx = ahash_request_ctx(areq);
-	struct rk_crypto_info *rkc = rctx->dev;
+	struct rk_ahash_ctx *tctx = crypto_ahash_ctx(tfm);
 	int ret;
 
-	ret = dma_map_sg(rkc->dev, areq->src, sg_nents(areq->src), DMA_TO_DEVICE);
+	ret = dma_map_sg(tctx->dev->dev, areq->src, sg_nents(areq->src), DMA_TO_DEVICE);
 	if (ret <= 0)
 		return -EINVAL;
 
@@ -277,10 +235,11 @@ static int rk_hash_prepare(struct crypto_engine *engine, void *breq)
 static int rk_hash_unprepare(struct crypto_engine *engine, void *breq)
 {
 	struct ahash_request *areq = container_of(breq, struct ahash_request, base);
+	struct crypto_ahash *tfm = crypto_ahash_reqtfm(areq);
 	struct rk_ahash_rctx *rctx = ahash_request_ctx(areq);
-	struct rk_crypto_info *rkc = rctx->dev;
+	struct rk_ahash_ctx *tctx = crypto_ahash_ctx(tfm);
 
-	dma_unmap_sg(rkc->dev, areq->src, rctx->nrsg, DMA_TO_DEVICE);
+	dma_unmap_sg(tctx->dev->dev, areq->src, rctx->nrsg, DMA_TO_DEVICE);
 	return 0;
 }
 
@@ -289,22 +248,13 @@ static int rk_hash_run(struct crypto_engine *engine, void *breq)
 	struct ahash_request *areq = container_of(breq, struct ahash_request, base);
 	struct crypto_ahash *tfm = crypto_ahash_reqtfm(areq);
 	struct rk_ahash_rctx *rctx = ahash_request_ctx(areq);
-	struct ahash_alg *alg = __crypto_ahash_alg(tfm->base.__crt_alg);
-	struct rk_crypto_tmp *algt = container_of(alg, struct rk_crypto_tmp, alg.hash);
+	struct rk_ahash_ctx *tctx = crypto_ahash_ctx(tfm);
 	struct scatterlist *sg = areq->src;
-	struct rk_crypto_info *rkc = rctx->dev;
 	int err = 0;
 	int i;
 	u32 v;
 
-	err = pm_runtime_resume_and_get(rkc->dev);
-	if (err)
-		return err;
-
 	rctx->mode = 0;
-
-	algt->stat_req++;
-	rkc->nreq++;
 
 	switch (crypto_ahash_digestsize(tfm)) {
 	case SHA1_DIGEST_SIZE:
@@ -321,42 +271,41 @@ static int rk_hash_run(struct crypto_engine *engine, void *breq)
 		goto theend;
 	}
 
-	rk_ahash_reg_init(areq, rkc);
+	rk_ahash_reg_init(areq);
 
 	while (sg) {
-		reinit_completion(&rkc->complete);
-		rkc->status = 0;
-		crypto_ahash_dma_start(rkc, sg);
-		wait_for_completion_interruptible_timeout(&rkc->complete,
+		reinit_completion(&tctx->dev->complete);
+		tctx->dev->status = 0;
+		crypto_ahash_dma_start(tctx->dev, sg);
+		wait_for_completion_interruptible_timeout(&tctx->dev->complete,
 							  msecs_to_jiffies(2000));
-		if (!rkc->status) {
-			dev_err(rkc->dev, "DMA timeout\n");
+		if (!tctx->dev->status) {
+			dev_err(tctx->dev->dev, "DMA timeout\n");
 			err = -EFAULT;
 			goto theend;
 		}
 		sg = sg_next(sg);
 	}
 
-	/*
-	 * it will take some time to process date after last dma
-	 * transmission.
-	 *
-	 * waiting time is relative with the last date len,
-	 * so cannot set a fixed time here.
-	 * 10us makes system not call here frequently wasting
-	 * efficiency, and make it response quickly when dma
-	 * complete.
-	 */
-	readl_poll_timeout(rkc->reg + RK_CRYPTO_HASH_STS, v, v == 0, 10, 1000);
+		/*
+		 * it will take some time to process date after last dma
+		 * transmission.
+		 *
+		 * waiting time is relative with the last date len,
+		 * so cannot set a fixed time here.
+		 * 10us makes system not call here frequently wasting
+		 * efficiency, and make it response quickly when dma
+		 * complete.
+		 */
+	while (!CRYPTO_READ(tctx->dev, RK_CRYPTO_HASH_STS))
+		udelay(10);
 
 	for (i = 0; i < crypto_ahash_digestsize(tfm) / 4; i++) {
-		v = readl(rkc->reg + RK_CRYPTO_HASH_DOUT_0 + i * 4);
+		v = readl(tctx->dev->reg + RK_CRYPTO_HASH_DOUT_0 + i * 4);
 		put_unaligned_le32(v, areq->result + i * 4);
 	}
 
 theend:
-	pm_runtime_put_autosuspend(rkc->dev);
-
 	local_bh_disable();
 	crypto_finalize_hash_request(engine, breq, err);
 	local_bh_enable();
@@ -367,15 +316,20 @@ theend:
 static int rk_cra_hash_init(struct crypto_tfm *tfm)
 {
 	struct rk_ahash_ctx *tctx = crypto_tfm_ctx(tfm);
-	const char *alg_name = crypto_tfm_alg_name(tfm);
+	struct rk_crypto_tmp *algt;
 	struct ahash_alg *alg = __crypto_ahash_alg(tfm->__crt_alg);
-	struct rk_crypto_tmp *algt = container_of(alg, struct rk_crypto_tmp, alg.hash);
+
+	const char *alg_name = crypto_tfm_alg_name(tfm);
+
+	algt = container_of(alg, struct rk_crypto_tmp, alg.hash);
+
+	tctx->dev = algt->dev;
 
 	/* for fallback */
 	tctx->fallback_tfm = crypto_alloc_ahash(alg_name, 0,
-						CRYPTO_ALG_NEED_FALLBACK);
+					       CRYPTO_ALG_NEED_FALLBACK);
 	if (IS_ERR(tctx->fallback_tfm)) {
-		dev_err(algt->dev->dev, "Could not load fallback driver.\n");
+		dev_err(tctx->dev->dev, "Could not load fallback driver.\n");
 		return PTR_ERR(tctx->fallback_tfm);
 	}
 
@@ -398,7 +352,7 @@ static void rk_cra_hash_exit(struct crypto_tfm *tfm)
 }
 
 struct rk_crypto_tmp rk_ahash_sha1 = {
-	.type = CRYPTO_ALG_TYPE_AHASH,
+	.type = ALG_TYPE_HASH,
 	.alg.hash = {
 		.init = rk_ahash_init,
 		.update = rk_ahash_update,
@@ -422,13 +376,13 @@ struct rk_crypto_tmp rk_ahash_sha1 = {
 				  .cra_init = rk_cra_hash_init,
 				  .cra_exit = rk_cra_hash_exit,
 				  .cra_module = THIS_MODULE,
-			}
-		}
+				  }
+			 }
 	}
 };
 
 struct rk_crypto_tmp rk_ahash_sha256 = {
-	.type = CRYPTO_ALG_TYPE_AHASH,
+	.type = ALG_TYPE_HASH,
 	.alg.hash = {
 		.init = rk_ahash_init,
 		.update = rk_ahash_update,
@@ -452,13 +406,13 @@ struct rk_crypto_tmp rk_ahash_sha256 = {
 				  .cra_init = rk_cra_hash_init,
 				  .cra_exit = rk_cra_hash_exit,
 				  .cra_module = THIS_MODULE,
-			}
-		}
+				  }
+			 }
 	}
 };
 
 struct rk_crypto_tmp rk_ahash_md5 = {
-	.type = CRYPTO_ALG_TYPE_AHASH,
+	.type = ALG_TYPE_HASH,
 	.alg.hash = {
 		.init = rk_ahash_init,
 		.update = rk_ahash_update,
@@ -482,7 +436,7 @@ struct rk_crypto_tmp rk_ahash_md5 = {
 				  .cra_init = rk_cra_hash_init,
 				  .cra_exit = rk_cra_hash_exit,
 				  .cra_module = THIS_MODULE,
+				  }
 			}
-		}
 	}
 };
