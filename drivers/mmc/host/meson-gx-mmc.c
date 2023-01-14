@@ -38,7 +38,6 @@
 #define   CLK_RX_PHASE_MASK GENMASK(13, 12)
 #define   CLK_PHASE_0 0
 #define   CLK_PHASE_180 2
-#define   CLK_PHASE_270 3
 #define   CLK_V2_TX_DELAY_MASK GENMASK(19, 16)
 #define   CLK_V2_RX_DELAY_MASK GENMASK(23, 20)
 #define   CLK_V2_ALWAYS_ON BIT(24)
@@ -140,7 +139,6 @@ struct meson_mmc_data {
 	unsigned int always_on;
 	unsigned int adjust;
 	unsigned int irq_sdio_sleep;
-	unsigned int clk_core_phase;
 };
 
 struct sd_emmc_desc {
@@ -434,7 +432,7 @@ static int meson_mmc_clk_init(struct meson_host *host)
 	/* init SD_EMMC_CLOCK to sane defaults w/min clock rate */
 	clk_reg = CLK_ALWAYS_ON(host);
 	clk_reg |= CLK_DIV_MASK;
-	clk_reg |= FIELD_PREP(CLK_CORE_PHASE_MASK, host->data->clk_core_phase);
+	clk_reg |= FIELD_PREP(CLK_CORE_PHASE_MASK, CLK_PHASE_180);
 	clk_reg |= FIELD_PREP(CLK_TX_PHASE_MASK, CLK_PHASE_0);
 	clk_reg |= FIELD_PREP(CLK_RX_PHASE_MASK, CLK_PHASE_0);
 	clk_reg |= CLK_IRQ_SDIO_SLEEP(host);
@@ -1025,22 +1023,6 @@ out:
 	if (ret == IRQ_HANDLED)
 		meson_mmc_request_done(host->mmc, cmd->mrq);
 
-	/*
-	* Sometimes after we ack all raised interrupts,
-	* an IRQ_SDIO can still be pending, which can get lost.
-	*
-	* To prevent this, recheck the IRQ_SDIO here and schedule
-	* it to be processed.
-	*/
-	raw_status = readl(host->regs + SD_EMMC_STATUS);
-	status = raw_status & (IRQ_EN_MASK | IRQ_SDIO);
-	if (status & IRQ_SDIO) {
-		spin_lock(&host->lock);
-		__meson_mmc_enable_sdio_irq(host->mmc, 0);
-		sdio_signal_irq(host->mmc);
-		spin_unlock(&host->lock);
-	}
-
 	return ret;
 }
 
@@ -1243,8 +1225,8 @@ static int meson_mmc_probe(struct platform_device *pdev)
 	}
 
 	host->irq = platform_get_irq(pdev, 0);
-	if (host->irq < 0) {
-		ret = host->irq;
+	if (host->irq <= 0) {
+		ret = -EINVAL;
 		goto free_host;
 	}
 
@@ -1393,7 +1375,6 @@ static const struct meson_mmc_data meson_gx_data = {
 	.always_on	= CLK_V2_ALWAYS_ON,
 	.adjust		= SD_EMMC_ADJUST,
 	.irq_sdio_sleep	= CLK_V2_IRQ_SDIO_SLEEP,
-	.clk_core_phase	= CLK_PHASE_180,
 };
 
 static const struct meson_mmc_data meson_axg_data = {
@@ -1402,7 +1383,6 @@ static const struct meson_mmc_data meson_axg_data = {
 	.always_on	= CLK_V3_ALWAYS_ON,
 	.adjust		= SD_EMMC_V3_ADJUST,
 	.irq_sdio_sleep	= CLK_V3_IRQ_SDIO_SLEEP,
-	.clk_core_phase	= CLK_PHASE_270,
 };
 
 static const struct of_device_id meson_mmc_of_match[] = {
