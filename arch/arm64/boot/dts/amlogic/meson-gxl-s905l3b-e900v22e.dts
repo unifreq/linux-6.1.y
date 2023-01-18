@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2016 Endless Computers, Inc.
+ * Author: Carlo Caione <carlo@endlessm.com>
+ * Copyright (c) flippy
+ */
+
+/dts-v1/;
+
+#include "meson-gxl-s905l2-x7-5g.dts"
+
+/ {
+	compatible = "amlogic,s905l3b", "amlogic,meson-gxl";
+	model = "Skyworth E900V22E";
+};
+
+/* eMMC */
+&sd_emmc_c {
+	status = "okay";
+	max-frequency = <100000000>;
+};
