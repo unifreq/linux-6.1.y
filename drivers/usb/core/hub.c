@@ -5800,7 +5800,7 @@ static const struct usb_device_id hub_id_table[] = {
 			| USB_DEVICE_ID_MATCH_INT_CLASS,
       .idVendor = USB_VENDOR_GENESYS_LOGIC,
       .bInterfaceClass = USB_CLASS_HUB,
-      .driver_info = HUB_QUIRK_CHECK_PORT_AUTOSUSPEND},
+      .driver_info = HUB_QUIRK_DISABLE_AUTOSUSPEND},
     { .match_flags = USB_DEVICE_ID_MATCH_VENDOR
 			| USB_DEVICE_ID_MATCH_PRODUCT,
       .idVendor = USB_VENDOR_TEXAS_INSTRUMENTS,
