@@ -89,13 +89,15 @@
 /**
  * DOC: mac80211 software tx queueing
  *
- * mac80211 uses an intermediate queueing implementation, designed to allow the
- * driver to keep hardware queues short and to provide some fairness between
- * different stations/interfaces.
+ * mac80211 provides an optional intermediate queueing implementation designed
+ * to allow the driver to keep hardware queues short and provide some fairness
+ * between different stations/interfaces.
+ * In this model, the driver pulls data frames from the mac80211 queue instead
+ * of letting mac80211 push them via drv_tx().
+ * Other frames (e.g. control or management) are still pushed using drv_tx().
  *
- * Drivers must provide the .wake_tx_queue driver operation by either
- * linking it to ieee80211_handle_wake_tx_queue() or implementing a custom
- * handler.
+ * Drivers indicate that they use this model by implementing the .wake_tx_queue
+ * driver operation.
  *
  * Intermediate queues (struct ieee80211_txq) are kept per-sta per-tid, with
  * another per-sta for non-data/non-mgmt and bufferable management frames, and
@@ -104,12 +106,9 @@
  * The driver is expected to initialize its private per-queue data for stations
  * and interfaces in the .add_interface and .sta_add ops.
  *
- * The driver can't access the internal TX queues (iTXQs) directly.
- * Whenever mac80211 adds a new frame to a queue, it calls the .wake_tx_queue
- * driver op.
- * Drivers implementing a custom .wake_tx_queue op can get them by calling
- * ieee80211_tx_dequeue(). Drivers using ieee80211_handle_wake_tx_queue() will
- * simply get the individual frames pushed via the .tx driver operation.
+ * The driver can't access the queue directly. To dequeue a frame from a
+ * txq, it calls ieee80211_tx_dequeue(). Whenever mac80211 adds a new frame to a
+ * queue, it calls the .wake_tx_queue driver op.
  *
  * Drivers can optionally delegate responsibility for scheduling queues to
  * mac80211, to take advantage of airtime fairness accounting. In this case, to
@@ -1645,7 +1644,6 @@ enum ieee80211_smps_mode {
  *
  * @power_level: requested transmit power (in dBm), backward compatibility
  *	value only that is set to the minimum of all interfaces
- * @max_antenna_gain: maximum antenna gain adjusted by user config (in dBi)
  *
  * @chandef: the channel definition to tune to
  * @radar_enabled: whether radar detection is enabled
@@ -1666,7 +1664,6 @@ enum ieee80211_smps_mode {
 struct ieee80211_conf {
 	u32 flags;
 	int power_level, dynamic_ps_timeout;
-	int max_antenna_gain;
 
 	u16 listen_interval;
 	u8 ps_dtim_period;
@@ -1809,10 +1806,6 @@ struct ieee80211_vif_cfg {
  * @addr: address of this interface
  * @p2p: indicates whether this AP or STA interface is a p2p
  *	interface, i.e. a GO or p2p-sta respectively
- * @netdev_features: tx netdev features supported by the hardware for this
- *	vif. mac80211 initializes this to hw->netdev_features, and the driver
- *	can mask out specific tx features. mac80211 will handle software fixup
- *	for masked offloads (GSO, CSUM)
  * @driver_flags: flags/capabilities the driver has for this interface,
  *	these need to be set (or cleared) when the interface is added
  *	or, if supported by the driver, the interface type is changed
@@ -1833,7 +1826,7 @@ struct ieee80211_vif_cfg {
  *	for this interface.
  * @drv_priv: data area for driver use, will always be aligned to
  *	sizeof(void \*).
- * @txq: the multicast data TX queue
+ * @txq: the multicast data TX queue (if driver uses the TXQ abstraction)
  * @txqs_stopped: per AC flag to indicate that intermediate TXQs are stopped,
  *	protected by fq->lock.
  * @offload_flags: 802.3 -> 802.11 enapsulation offload flags, see
@@ -1854,7 +1847,6 @@ struct ieee80211_vif {
 
 	struct ieee80211_txq *txq;
 
-	netdev_features_t netdev_features;
 	u32 driver_flags;
 	u32 offload_flags;
 
@@ -2260,8 +2252,8 @@ struct ieee80211_link_sta {
  *	For non MLO STA it will point to the deflink data. For MLO STA
  *	ieee80211_sta_recalc_aggregates() must be called to update it.
  * @support_p2p_ps: indicates whether the STA supports P2P PS mechanism or not.
- * @txq: per-TID data TX queues; note that the last entry (%IEEE80211_NUM_TIDS)
- *	is used for non-data frames
+ * @txq: per-TID data TX queues (if driver uses the TXQ abstraction); note that
+ *	the last entry (%IEEE80211_NUM_TIDS) is used for non-data frames
  * @deflink: This holds the default link STA information, for non MLO STA all link
  *	specific STA information is accessed through @deflink or through
  *	link[0] which points to address of @deflink. For MLO Link STA
@@ -5699,7 +5691,7 @@ void ieee80211_key_replay(struct ieee80211_key_conf *keyconf);
  * @hw: pointer as obtained from ieee80211_alloc_hw().
  * @queue: queue number (counted from zero).
  *
- * Drivers must use this function instead of netif_wake_queue.
+ * Drivers should use this function instead of netif_wake_queue.
  */
 void ieee80211_wake_queue(struct ieee80211_hw *hw, int queue);
 
@@ -5708,7 +5700,7 @@ void ieee80211_wake_queue(struct ieee80211_hw *hw, int queue);
  * @hw: pointer as obtained from ieee80211_alloc_hw().
  * @queue: queue number (counted from zero).
  *
- * Drivers must use this function instead of netif_stop_queue.
+ * Drivers should use this function instead of netif_stop_queue.
  */
 void ieee80211_stop_queue(struct ieee80211_hw *hw, int queue);
 
@@ -5717,7 +5709,7 @@ void ieee80211_stop_queue(struct ieee80211_hw *hw, int queue);
  * @hw: pointer as obtained from ieee80211_alloc_hw().
  * @queue: queue number (counted from zero).
  *
- * Drivers must use this function instead of netif_queue_stopped.
+ * Drivers should use this function instead of netif_stop_queue.
  *
  * Return: %true if the queue is stopped. %false otherwise.
  */
@@ -5728,7 +5720,7 @@ int ieee80211_queue_stopped(struct ieee80211_hw *hw, int queue);
  * ieee80211_stop_queues - stop all queues
  * @hw: pointer as obtained from ieee80211_alloc_hw().
  *
- * Drivers must use this function instead of netif_tx_stop_all_queues.
+ * Drivers should use this function instead of netif_stop_queue.
  */
 void ieee80211_stop_queues(struct ieee80211_hw *hw);
 
@@ -5736,7 +5728,7 @@ void ieee80211_stop_queues(struct ieee80211_hw *hw);
  * ieee80211_wake_queues - wake all queues
  * @hw: pointer as obtained from ieee80211_alloc_hw().
  *
- * Drivers must use this function instead of netif_tx_wake_all_queues.
+ * Drivers should use this function instead of netif_wake_queue.
  */
 void ieee80211_wake_queues(struct ieee80211_hw *hw);
 
@@ -6956,18 +6948,6 @@ static inline struct sk_buff *ieee80211_tx_dequeue_ni(struct ieee80211_hw *hw,
 
 	return skb;
 }
-
-/**
- * ieee80211_handle_wake_tx_queue - mac80211 handler for wake_tx_queue callback
- *
- * @hw: pointer as obtained from wake_tx_queue() callback().
- * @txq: pointer as obtained from wake_tx_queue() callback().
- *
- * Drivers can use this function for the mandatory mac80211 wake_tx_queue
- * callback in struct ieee80211_ops. They should not call this function.
- */
-void ieee80211_handle_wake_tx_queue(struct ieee80211_hw *hw,
-				    struct ieee80211_txq *txq);
 
 /**
  * ieee80211_next_txq - get next tx queue to pull packets from
