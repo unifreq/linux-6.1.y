@@ -76,6 +76,13 @@
 			#cooling-cells = <2>; /* min followed by max */
 			dynamic-power-coefficient = <100>;
 			cpu-idle-states = <&CPU_SLEEP &CLUSTER_SLEEP>;
+			d-cache-size = <0x8000>; // 32KiB
+			d-cache-line-size = <64>;// Data side cache line length of 64 bytes
+			d-cache-sets = <128>; // 32KiB(size)/64(line-size)=512ways/4-way set
+			i-cache-size = <0x8000>; // 32KiB
+			i-cache-line-size = <64>;// Instruction side cache line length of 64 bytes
+			i-cache-sets = <256>; // 32KiB(size)/64(line-size)=512ways/2-way set
+			next-level-cache = <&l2_0>;
 		};
 
 		cpu_l1: cpu@1 {
@@ -88,6 +95,13 @@
 			#cooling-cells = <2>; /* min followed by max */
 			dynamic-power-coefficient = <100>;
 			cpu-idle-states = <&CPU_SLEEP &CLUSTER_SLEEP>;
+			d-cache-size = <0x8000>; // 32KiB
+			d-cache-line-size = <64>;// Data side cache line length of 64 bytes
+			d-cache-sets = <128>; // 32KiB(size)/64(line-size)=512ways/4-way set
+			i-cache-size = <0x8000>; // 32KiB
+			i-cache-line-size = <64>;// Instruction side cache line length of 64 bytes
+			i-cache-sets = <256>; // 32KiB(size)/64(line-size)=512ways/2-way set
+			next-level-cache = <&l2_0>;
 		};
 
 		cpu_l2: cpu@2 {
@@ -100,6 +114,13 @@
 			#cooling-cells = <2>; /* min followed by max */
 			dynamic-power-coefficient = <100>;
 			cpu-idle-states = <&CPU_SLEEP &CLUSTER_SLEEP>;
+			d-cache-size = <0x8000>; // 32KiB
+			d-cache-line-size = <64>;// Data side cache line length of 64 bytes
+			d-cache-sets = <128>; // 32KiB(size)/64(line-size)=512ways/4-way set
+			i-cache-size = <0x8000>; // 32KiB
+			i-cache-line-size = <64>;// Instruction side cache line length of 64 bytes
+			i-cache-sets = <256>; // 32KiB(size)/64(line-size)=512ways/2-way set
+			next-level-cache = <&l2_0>;
 		};
 
 		cpu_l3: cpu@3 {
@@ -112,6 +133,13 @@
 			#cooling-cells = <2>; /* min followed by max */
 			dynamic-power-coefficient = <100>;
 			cpu-idle-states = <&CPU_SLEEP &CLUSTER_SLEEP>;
+			d-cache-size = <0x8000>; // 32KiB
+			d-cache-line-size = <64>;// Data side cache line length of 64 bytes
+			d-cache-sets = <128>; // 32KiB(size)/64(line-size)=512ways/4-way set
+			i-cache-size = <0x8000>; // 32KiB
+			i-cache-line-size = <64>;// Instruction side cache line length of 64 bytes
+			i-cache-sets = <256>; // 32KiB(size)/64(line-size)=512ways/2-way set
+			next-level-cache = <&l2_0>;
 		};
 
 		cpu_b0: cpu@100 {
@@ -124,6 +152,13 @@
 			#cooling-cells = <2>; /* min followed by max */
 			dynamic-power-coefficient = <436>;
 			cpu-idle-states = <&CPU_SLEEP &CLUSTER_SLEEP>;
+			d-cache-size = <0x8000>; // 32KB 2-way set-associative data cache
+			d-cache-line-size = <64>;// Fixed line length of 64 bytes
+			d-cache-sets = <256>; // 32KiB(size)/64(line-size)=512ways/2-way set
+			i-cache-size = <0xc000>; // 48kB 3-way set-associative data cache
+			i-cache-line-size = <64>;// Fixed line length of 64 bytes
+			i-cache-sets = <256>; // 48KiB(size)/64(line-size)=768ways/3-way set
+			next-level-cache = <&l2_1>;
 
 			thermal-idle {
 				#cooling-cells = <2>;
@@ -142,6 +177,13 @@
 			#cooling-cells = <2>; /* min followed by max */
 			dynamic-power-coefficient = <436>;
 			cpu-idle-states = <&CPU_SLEEP &CLUSTER_SLEEP>;
+			d-cache-size = <0x8000>; // 32KB 2-way set-associative data cache
+			d-cache-line-size = <64>;// Fixed line length of 64 bytes
+			d-cache-sets = <256>; // 32KiB(size)/64(line-size)=512ways/2-way set
+			i-cache-size = <0xc000>; // 48kB 3-way set-associative data cache
+			i-cache-line-size = <64>;// Fixed line length of 64 bytes
+			i-cache-sets = <256>; // 48KiB(size)/64(line-size)=768ways/3-way set
+			next-level-cache = <&l2_1>;
 
 			thermal-idle {
 				#cooling-cells = <2>;
@@ -170,6 +212,22 @@
 				exit-latency-us = <500>;
 				min-residency-us = <2000>;
 			};
+		};
+		
+		l2_1: l2-cache0 {
+			compatible = "cache";
+			cache-size = <0x100000>; // 1MB
+			cache-line-size = <64>; // Fixed line length of 64 bytes
+			cache-sets = <1024>; // 1MiB(size)/64(line-size)=16000ways/16-way set
+			cache-level = <2>;
+		};
+		
+		l2_0: l2-cache0 {
+			compatible = "cache";
+			cache-size = <0x80000>; // 512KiB
+			cache-line-size = <64>; // Fixed line length of 64 bytes
+			cache-sets = <512>; // 512KiB(size)/64(line-size)=8192ways/16-way set
+			cache-level = <2>;
 		};
 	};
 
