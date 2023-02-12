@@ -95,6 +95,7 @@
 			cache-sets = <512>; // 512KiB(size)/64(line-size)=8192ways/16-way set
 			cache-level = <2>;
 		};
+	};
 	
 	backlight: backlight {
 		compatible = "pwm-backlight";
