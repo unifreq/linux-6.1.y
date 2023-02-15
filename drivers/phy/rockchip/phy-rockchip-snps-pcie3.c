@@ -139,14 +139,13 @@ static int rockchip_p3phy_rk3568_init(struct rockchip_p3phy_priv *priv)
 
 	for (int i = 0; i < 8192; i++)
 		writel(phy_fw[i], priv->mmio + (i<<2));
+	dev_info(&priv->phy->dev, "Rockchip snps pcie3 phy firmware updated, size %ld.\n", ARRAY_SIZE(phy_fw));
 
 	regmap_write(priv->phy_grf, GRF_PCIE30PHY_CON9,
 		     (0x0 << 8) | (0x3 << (8 + 16)));
 
 	regmap_write(priv->phy_grf, GRF_PCIE30PHY_CON4,
 		     (0x1 << 14) | (0x1 << (14 + 16))); //sdram_ld_done
-
-	dev_info(&priv->phy->dev, "p3phy (fw-d54d0eb) initialized\n");
 
 	return 0;
 }
