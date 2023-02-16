@@ -1,0 +1,83 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2018 Martin Blumenstingl <martin.blumenstingl@googlemail.com>.
+ * Based on meson-gxl-s905d-p231.dts:
+ * - Copyright (c) 2016 Endless Computers, Inc.
+ * - Copyright (c) unifreq
+ */
+
+/dts-v1/;
+
+#include "meson-gxl-s905w-p281.dts"
+
+/ {
+	compatible = "amlogic,p281", "amlogic,s905w", "amlogic,meson-gxl";
+	model = "X96W";
+
+	aliases {
+		serial0 = &uart_AO;   /* Console */
+		serial1 = &uart_A;    /* Bluetooth */
+		ethernet0 = &ethmac;
+	};
+};
+
+/* SDIO wifi: AP6255 */
+&sd_emmc_a {
+	status = "okay";
+
+	brcmf: wifi@1 {
+		reg = <1>;
+		compatible = "brcm,bcm4329-fmac";
+	};
+};
+
+/* SD card */
+&sd_emmc_b {
+	status = "okay";
+	bus-width = <4>;
+	cap-sd-highspeed;
+	max-frequency = <50000000>;
+};
+
+/* eMMC */
+&sd_emmc_c {
+	status = "okay";
+	max-frequency = <50000000>;
+};
+
+/* Console UART */
+&uart_AO {
+	status = "okay";
+	pinctrl-0 = <&uart_ao_a_pins>;
+	pinctrl-names = "default";
+};
+
+/* S905W only has access to its internal PHY */
+&ethmac {
+	status = "okay";
+	phy-mode = "rmii";
+	phy-handle = <&internal_phy>;
+};
+
+&internal_phy {
+	status = "okay";
+	pinctrl-0 = <&eth_link_led_pins>, <&eth_act_led_pins>;
+	pinctrl-names = "default";
+	max-speed = <100>;
+};
+
+/* This is connected to the Bluetooth module: AP6255 */
+&uart_A {
+	status = "okay";
+	pinctrl-0 = <&uart_a_pins>, <&uart_a_cts_rts_pins>;
+	pinctrl-names = "default";
+	uart-has-rtscts;
+
+	bluetooth {
+		compatible = "brcm,bcm4345c5";
+		shutdown-gpios = <&gpio GPIOX_17 GPIO_ACTIVE_HIGH>;
+		max-speed = <2000000>;
+		clocks = <&wifi32k>;
+		clock-names = "lpo";
+	};
+};
