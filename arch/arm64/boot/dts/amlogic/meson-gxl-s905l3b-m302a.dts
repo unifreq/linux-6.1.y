@@ -44,5 +44,5 @@
 };
 
 &internal_phy {
-  max-speed = <100>;
+	max-speed = <100>;
 };
