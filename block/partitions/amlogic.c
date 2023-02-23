@@ -62,7 +62,7 @@ static int __init apt_checksum_setup(char *s) {
 	}
 	return 1;
 }
-__setup("apt_checksum", apt_checksum_setup);
+__setup("apt_checksum=", apt_checksum_setup);
 
 bool amlogic_is_partition_name_valid(char *name) {
 	char safe_name[19];
@@ -160,7 +160,7 @@ static int __init apt_blkdevs_setup(char *s) {
 	apt_blkdevs = s;
 	return 1;
 }
-__setup("apt_blkdevs", apt_blkdevs_setup);
+__setup("apt_blkdevs=", apt_blkdevs_setup);
 
 bool amlogic_should_parse_block(struct parsed_partitions *state) {
 	char *blkdev;
