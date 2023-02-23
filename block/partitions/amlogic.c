@@ -206,7 +206,7 @@ int amlogic_partition(struct parsed_partitions *state){
 	sector_t disk_sectors;
 	sector_t disk_size;
 	struct amlogic_table *apt;
-	u8 apt_cache[(sizeof *apt >> 9) + 1 << 9] = {0};
+	u8 apt_cache[((sizeof *apt >> 9) + 1) << 9] = {0};
 
 	if (!amlogic_should_parse_block(state)) {
 		return 0;
