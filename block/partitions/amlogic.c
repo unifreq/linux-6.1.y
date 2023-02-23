@@ -64,10 +64,6 @@ static int __init apt_checksum_setup(char *s) {
 }
 __setup("apt_checksum", apt_checksum_setup);
 
-int amlogic_is_partition_name_char_valid(char c) {
-	
-}
-
 bool amlogic_is_partition_name_valid(char *name) {
 	for (u8 i = 0; i < 16; ++i) {
 		switch (name[i]) {
