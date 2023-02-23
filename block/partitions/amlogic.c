@@ -242,15 +242,15 @@ int amlogic_partition(struct parsed_partitions *state){
 		size_t name_min;
 		char tmp[sizeof(info->volname) + 4];
 		if (offset > disk_sectors) {
+			pr_warn("apt partition %s's offset is larger than disk size (sectors 0x%llx > 0x%llx), shifting its offset to disk end\n", part->name, offset, disk_sectors);
 			offset = disk_sectors;
-			pr_warn("apt partition %s's offset is larger than disk size (sectors %llx > %llx), shifting its offset to disk end\n", part->name, offset, disk_sectors);
 		}
 		
 		end = offset + size;
 
 		if (end > disk_sectors) {
 			u64 diff = end - disk_sectors;
-			pr_warn("apt partition %s' size is too large and it exceeds the disk size (sectors end %llx > %llx), shrinking its size by %llx sectors\n", part->name, end, disk_sectors, diff);
+			pr_warn("apt partition %s's size is too large and it exceeds the disk size (sectors end 0x%llx > 0x%llx), shrinking its size by 0x%llx sectors\n", part->name, end, disk_sectors, diff);
 			size -= diff;
 		}
 
