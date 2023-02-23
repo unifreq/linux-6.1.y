@@ -174,11 +174,15 @@ bool amlogic_should_parse_block(struct parsed_partitions *state) {
 	}
 	/* apt_blkdevs set and not empty, only parse block if its in the list */
 	blkdev = apt_blkdevs;
-	for (char *c = apt_blkdevs; *c; ++c) {
+	for (char *c = apt_blkdevs;; ++c) {
 		switch (*c) {
 			case ',':
 			case '\0':
-				if (!strncmp(blkdev, state->disk->disk_name, c - blkdev)) {
+				if (strncmp(blkdev, state->disk->disk_name, c - blkdev)) {
+					if (*c == '\0') {
+						return false;
+					}
+				} else {
 					return true;
 				}
 				blkdev = c + 1;
