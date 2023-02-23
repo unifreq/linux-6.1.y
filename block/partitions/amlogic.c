@@ -205,7 +205,8 @@ bool amlogic_should_parse_block(struct parsed_partitions *state) {
 int amlogic_partition(struct parsed_partitions *state){
 	sector_t disk_sectors;
 	sector_t disk_size;
-	struct amlogic_table apt = {0};
+	struct amlogic_table *apt;
+	u8 apt_cache[(sizeof *apt >> 9) + 1 << 9] = {0};
 
 	if (!amlogic_should_parse_block(state)) {
 		return 0;
@@ -223,18 +224,19 @@ int amlogic_partition(struct parsed_partitions *state){
 		if (!data) {
 			return -1;
 		}
-		memcpy((u8 *)(&apt) + 512 * i, data, 512);
+		memcpy(apt_cache + 512 * i, data, 512);
 		put_dev_sector(sect);
 	}
 
-	if (!amlogic_is_valid(&apt)) {
+	apt = (struct amlogic_table *)apt_cache;
+	if (!amlogic_is_valid(apt)) {
 		return 0;
 	}
 
 	pr_debug("Amlogic partition table is valid, now parsing it\n");
 
-	for (u32 i = 0; i < le32_to_cpu(apt.header.count) && i < state->limit-1; i++) {
-		struct amlogic_partition *part = apt.parts + i;
+	for (u32 i = 0; i < le32_to_cpu(apt->header.count) && i < state->limit-1; i++) {
+		struct amlogic_partition *part = apt->parts + i;
 		u64 offset = le64_to_cpu(part->offset) >> 9;
 		u64 size = le64_to_cpu(part->size) >> 9;
 		u64 end;
