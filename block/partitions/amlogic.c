@@ -165,8 +165,8 @@ __setup("apt_blkdevs", apt_blkdevs_setup);
 bool amlogic_should_parse_block(struct parsed_partitions *state) {
 	char *blkdev;
 	if (!apt_blkdevs) {
-		pr_warn("apt_blkdevs is not set, module not properly loaded, no operation for safefy\n");
-		return false;
+		pr_warn("apt_blkdevs is not set, all blocks should be parsed\n");
+		return true;
 	}
 	if (!apt_blkdevs[0]) {
 		pr_warn("apt_blkdevs is empty, all block devices will be parsed\n");
