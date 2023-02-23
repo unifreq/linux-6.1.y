@@ -65,19 +65,12 @@ static int __init apt_checksum_setup(char *s) {
 __setup("apt_checksum", apt_checksum_setup);
 
 bool amlogic_is_partition_name_valid(char *name) {
+	char safe_name[19];
 	for (u8 i = 0; i < 16; ++i) {
 		switch (name[i]) {
 			case 'a'...'z':
 			case '_':
-				if (i == 15) {
-					char safe_name[19];
-					strncpy(safe_name, name, 15);
-					strncpy(safe_name + 15, "...", 3);
-					pr_warn("partition name not ended properly: %s\n", safe_name);
-					return false;
-				} else {
-					break;
-				}
+				break;
 			case '\0':
 				if (i == 0) {
 					pr_warn("partition name empty, which is illegal\n");
@@ -90,28 +83,38 @@ bool amlogic_is_partition_name_valid(char *name) {
 				break;
 		}
 	}
+	strncpy(safe_name, name, 15);
+	strncpy(safe_name + 15, "...", 3);
+	pr_warn("partition name not ended properly: %s\n", safe_name);
+	return false;
 }
 
 bool amlogic_is_partition_valid(struct amlogic_partition *part) {
+	u64 offset_raw;
+	u64 offset_round;
+	u64 size_raw;
+	u64 size_round;
 	if (!amlogic_is_partition_name_valid(part->name)) {
 		return false;
 	}
 	/* They could be not  */
-	u64 offset_raw = le64_to_cpu(part->offset);
-	u64 offset_round = offset_raw >> 9 << 9;
+	offset_raw = le64_to_cpu(part->offset);
+	offset_round = offset_raw >> 9 << 9;
 	if (offset_raw != offset_round) {
-		pr_warn("apt partition's offset is not multiple of 512: %lx\n");
+		pr_warn("apt partition's offset is not multiple of 512: %lx\n", offset_raw);
 		return false;
 	}
-	u64 size_raw = le64_to_cpu(part->size);
-	u64 size_actual = size_raw >> 9 << 9;
-	if (size_raw != size_actual) {
-		pr_warn("apt partition's size is not multiple of 512: %lx\n");
+	size_raw = le64_to_cpu(part->size);
+	size_round = size_raw >> 9 << 9;
+	if (size_raw != size_round) {
+		pr_warn("apt partition's size is not multiple of 512: %lx\n", size_raw);
 		return false;
 	}
+	return true;
 }
 
 bool amlogic_is_valid(struct amlogic_table *apt) {
+	u32 checksum;
 	if (!apt) {
 		pr_warn("apt not allocated properly\n");
 		return false;
@@ -137,7 +140,7 @@ bool amlogic_is_valid(struct amlogic_table *apt) {
 		pr_warn("apt entries overflow: %u > %u\n", le32_to_cpu(apt->header.count), APT_MAX_PARTS);
 		return false;
 	}
-	u32 checksum = amlogic_checksum(apt);
+	checksum = amlogic_checksum(apt);
 	if (apt_checksum && checksum != le32_to_cpu(apt->header.checksum)) {
 		pr_warn("apt checksum mismatch: calculated %x != recorded %x. (This check can be turned off by setting apt_checksum=0)\n", checksum, le32_to_cpu(apt->header.checksum));
 		return false;
@@ -160,6 +163,7 @@ static int __init apt_blkdevs_setup(char *s) {
 __setup("apt_blkdevs", apt_blkdevs_setup);
 
 bool amlogic_should_parse_block(struct parsed_partitions *state) {
+	char *blkdev;
 	if (!apt_blkdevs) {
 		pr_warn("apt_blkdevs is not set, module not properly loaded, no operation for safefy\n");
 		return false;
@@ -169,7 +173,7 @@ bool amlogic_should_parse_block(struct parsed_partitions *state) {
 		return true;
 	}
 	/* apt_blkdevs set and not empty, only parse block if its in the list */
-	char *blkdev = apt_blkdevs;
+	blkdev = apt_blkdevs;
 	for (char *c = apt_blkdevs; *c; ++c) {
 		switch (*c) {
 			case ',':
@@ -198,19 +202,20 @@ bool amlogic_should_parse_block(struct parsed_partitions *state) {
  *  1 if successful
  *
  */
-int amlogic_partition(struct parsed_partitions *state)
-{
+int amlogic_partition(struct parsed_partitions *state){
+	sector_t disk_sector;
+	sector_t disk_size;
+	struct amlogic_table apt = {0};
+
 	if (!amlogic_should_parse_block(state)) {
 		return 0;
 	}
 
-	sector_t disk_sectors = get_capacity(state->disk);
+	disk_sectors = get_capacity(state->disk);
 	if (disk_sectors < 0x12003) {
 		return 0;
 	}
-	sector_t disk_size = disk_sectors << 9;
-
-	struct amlogic_table apt = {0};
+	disk_size = disk_sectors << 9;
 	 
 	for (sector_t i = 0; i < 3; ++i) {
 		Sector sect;
@@ -232,12 +237,16 @@ int amlogic_partition(struct parsed_partitions *state)
 		struct amlogic_partition *part = apt.parts + i;
 		u64 offset = le64_to_cpu(part->offset) >> 9;
 		u64 size = le64_to_cpu(part->size) >> 9;
+		u64 end;
+		struct partition_meta_info *info;
+		size_t name_min;
+		char tmp[sizeof(info->volname) + 4];
 		if (offset > disk_sectors) {
 			offset = disk_sectors;
 			pr_warn("apt partition %s's offset is larger than disk size (sectors %lx > %x), shifting its offset to disk end\n", part->name, offset, disk_sectors);
 		}
 		
-		u64 end = offset + size;
+		end = offset + size;
 
 		if (end > disk_sectors) {
 			u64 diff = end - disk_sectors;
@@ -247,12 +256,11 @@ int amlogic_partition(struct parsed_partitions *state)
 
 		put_partition(state, i, offset, size);
 
-		struct partition_meta_info *info = &state->parts[i].info;
-		size_t name_min = min_t(size_t, sizeof info->volname, sizeof part->name);
+		info = &state->parts[i].info;
+		name_min = min_t(size_t, sizeof info->volname, sizeof part->name);
 		strncpy(info->volname, part->name, name_min);
 		info->volname[name_min] = '\0';
 
-		char tmp[sizeof(info->volname) + 4];
 		snprintf(tmp, sizeof(tmp), "(%s)", info->volname);
 		strlcat(state->pp_buf, tmp, PAGE_SIZE);
 
