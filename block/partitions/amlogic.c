@@ -101,13 +101,13 @@ bool amlogic_is_partition_valid(struct amlogic_partition *part) {
 	offset_raw = le64_to_cpu(part->offset);
 	offset_round = offset_raw >> 9 << 9;
 	if (offset_raw != offset_round) {
-		pr_warn("apt partition's offset is not multiple of 512: %lx\n", offset_raw);
+		pr_warn("apt partition's offset is not multiple of 512: %llx\n", offset_raw);
 		return false;
 	}
 	size_raw = le64_to_cpu(part->size);
 	size_round = size_raw >> 9 << 9;
 	if (size_raw != size_round) {
-		pr_warn("apt partition's size is not multiple of 512: %lx\n", size_raw);
+		pr_warn("apt partition's size is not multiple of 512: %llx\n", size_raw);
 		return false;
 	}
 	return true;
@@ -203,7 +203,7 @@ bool amlogic_should_parse_block(struct parsed_partitions *state) {
  *
  */
 int amlogic_partition(struct parsed_partitions *state){
-	sector_t disk_sector;
+	sector_t disk_sectors;
 	sector_t disk_size;
 	struct amlogic_table apt = {0};
 
