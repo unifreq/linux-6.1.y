@@ -260,9 +260,9 @@ int amlogic_partition(struct parsed_partitions *state){
 			size -= diff;
 		}
 
-		put_partition(state, i, offset, size);
+		put_partition(state, i + 1, offset, size);
 
-		info = &state->parts[i].info;
+		info = &state->parts[i + 1].info;
 		name_min = min_t(size_t, sizeof info->volname, sizeof part->name);
 		strncpy(info->volname, part->name, name_min);
 		info->volname[name_min] = '\0';
@@ -270,7 +270,7 @@ int amlogic_partition(struct parsed_partitions *state){
 		snprintf(tmp, sizeof(tmp), "(%s)", info->volname);
 		strlcat(state->pp_buf, tmp, PAGE_SIZE);
 
-		state->parts[i].has_info = true;
+		state->parts[i + 1].has_info = true;
 	}
 
 	strlcat(state->pp_buf, "\n", PAGE_SIZE);
