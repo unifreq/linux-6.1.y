@@ -67,3 +67,4 @@ int sgi_partition(struct parsed_partitions *state);
 int sun_partition(struct parsed_partitions *state);
 int sysv68_partition(struct parsed_partitions *state);
 int ultrix_partition(struct parsed_partitions *state);
+int amlogic_partition(struct parsed_partitions *state);
