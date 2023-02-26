@@ -270,4 +270,16 @@ config CMDLINE_PARTITION
 	  Say Y here if you want to read the partition table from bootargs.
 	  The format for the command line is just like mtdparts.
 
+config AMLOGIC_PARTITION
+	bool "Amlogic proprietary partition support" if PARTITION_ADVANCED
+	help
+	  Say Y here if you want to read Amlogic's proprietary partition
+	  table.
+	  Otherwise, say N.
+	  The support is implemented mainly with 7Ji's reverse-engineering
+	  of this partition format on several devices with results available
+	  in the ampart project.
+	  The technical details could have some differences from Amlogic's
+	  own impementation.
+
 endmenu
