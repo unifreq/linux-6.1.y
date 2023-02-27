@@ -128,5 +128,6 @@ dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x96-max-plus-ip1001m.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x96-max-plus-oc.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x96-max-plus-q1.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x96-max-plus-q2.dtb
+dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x96-max-plus-2101.dtb
 
 subdir-y       := $(dts-dirs) overlay
