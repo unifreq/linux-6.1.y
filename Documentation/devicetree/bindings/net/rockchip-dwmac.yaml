@@ -68,6 +68,7 @@ properties:
         - mac_clk_rx
         - aclk_mac
         - pclk_mac
+        - pclk_xpcs
         - clk_mac_ref
         - clk_mac_refout
         - clk_mac_speed
@@ -86,6 +87,11 @@ properties:
     $ref: /schemas/types.yaml#/definitions/phandle
 
   rockchip,php-grf:
+    description:
+      The phandle of the syscon node for the peripheral general register file.
+    $ref: /schemas/types.yaml#/definitions/phandle
+
+  rockchip,xpcs:
     description:
       The phandle of the syscon node for the peripheral general register file.
     $ref: /schemas/types.yaml#/definitions/phandle

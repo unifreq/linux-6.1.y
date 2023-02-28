@@ -400,6 +400,12 @@
 		status = "disabled";
 	};
 
+	xpcs: syscon@fda00000 {
+		compatible = "rockchip,rk3568-xpcs", "syscon";
+		reg = <0x0 0xfda00000 0x0 0x200000>;
+		status = "disabled";
+	};
+
 	pmugrf: syscon@fdc20000 {
 		compatible = "rockchip,rk3568-pmugrf", "syscon", "simple-mfd";
 		reg = <0x0 0xfdc20000 0x0 0x10000>;
