@@ -85,6 +85,7 @@ static unsigned char fd650_init(void)
 		return 0;
 
 	memset(dev->wbuf, 0x00, sizeof(dev->wbuf));
+	fd650_write_data((unsigned char *)dev->wbuf, sizeof(dev->wbuf));
 	fd650_set_brightness_level(dev->brightness);
 	switch(dev->dtb_active.display.type) {
 		case DISPLAY_TYPE_5D_7S_T95:

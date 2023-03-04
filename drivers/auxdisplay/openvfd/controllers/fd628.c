@@ -138,8 +138,9 @@ static unsigned char fd628_init(void)
 	}
 
 	ram_size = ram_grid_size * ram_grid_count;
-	fd628_set_brightness_level(dev->brightness);
 	memset(dev->wbuf, 0x00, sizeof(dev->wbuf));
+	fd628_write_data((unsigned char *)dev->wbuf, sizeof(dev->wbuf));
+	fd628_set_brightness_level(dev->brightness);
 	return 1;
 }
 
