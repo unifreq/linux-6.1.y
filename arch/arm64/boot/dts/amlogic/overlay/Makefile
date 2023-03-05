@@ -2,6 +2,7 @@
 dtbo-$(CONFIG_ARCH_MESON) += \
 	meson-i2cA.dtbo \
 	meson-i2cB.dtbo \
+	meson-openvfd.dtbo \
 	meson-uartA.dtbo \
 	meson-uartC.dtbo \
 	meson-w1-gpio.dtbo \

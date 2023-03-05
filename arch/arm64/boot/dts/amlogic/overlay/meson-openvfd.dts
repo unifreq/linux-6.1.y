@@ -1,0 +1,10 @@
+/dts-v1/;
+/plugin/;
+
+&{/} {
+	openvfd: openvfd {
+		compatible = "open,vfd";
+		dev_name = "openvfd";
+		status = "okay";
+	};
+};
