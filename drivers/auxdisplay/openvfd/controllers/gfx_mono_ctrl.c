@@ -307,6 +307,24 @@ static void print_string(const char *str, const struct font *font_struct, unsign
 	specific_gfx_mono_ctrl.print_string(ram_buffer, &rect);
 }
 
+static unsigned char prepare_and_print_string(const char *str, const struct font *font_struct, unsigned char x, unsigned char y)
+{
+	char buffer[512];
+	struct rect rect;
+	init_rect(&rect, font_struct, str, 0, y, 0);
+	if (rect.length > 0) {
+		if (rect.length < strlen(str)) {
+			scnprintf(buffer, sizeof(buffer), "%s", str);
+			buffer[rect.length - 1] = 0x7F; // 0x7F = position of ellipsis.
+			buffer[rect.length] = '\0';
+			print_string(buffer, font_struct, x, y);
+		} else {
+			print_string(str, font_struct, x, y);
+		}
+	}
+	return rect.length;
+}
+
 static void setup_fonts(void)
 {
 	init_font(&font_indicators, icons16x16_V);
@@ -843,6 +861,11 @@ static void print_playback_time(const struct vfd_display_data *data)
 
 static void print_title(const struct vfd_display_data *data)
 {
+	unsigned char offset = (unsigned char)max((size_t)0, (columns - (font_text.font_width * strlen(data->string_main))) / 2);
+	if (strlen(data->string_secondary) > 0 && prepare_and_print_string(data->string_main, &font_text, offset, font_small_text.font_height))
+		prepare_and_print_string(data->string_secondary, &font_small_text, 0, 0);
+	else
+		prepare_and_print_string(data->string_main, &font_text, offset, 0);
 }
 
 static void print_date(const struct vfd_display_data *data)

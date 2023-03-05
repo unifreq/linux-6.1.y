@@ -69,6 +69,9 @@ size_t seg7_write_display_data(const struct vfd_display_data *data, unsigned sho
 			raw_wdata[i + 1] = char_to_mask(buffer[i]);
 		break;
 	case DISPLAY_MODE_TITLE:
+		raw_wdata[0] = 0;
+		for (i = 1; i <= 4; i++)
+			raw_wdata[i] = data->string_main[i - 1] ? char_to_mask(data->string_main[i - 1]) : 0;
 		break;
 	case DISPLAY_MODE_TEMPERATURE:
 		len = scnprintf(buffer, sizeof(buffer), "%d%c%c", data->temperature % 1000, 0xB0, 'c'); // ascii 176 = degree
