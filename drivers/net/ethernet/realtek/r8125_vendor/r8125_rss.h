@@ -57,9 +57,11 @@ int rtl8125_get_rxfh(struct net_device *netdev, u32 *indir, u8 *key,
                      u8 *hfunc);
 int rtl8125_set_rxfh(struct net_device *netdev, const u32 *indir,
                      const u8 *key, const u8 hfunc);
+#if 0
 void rtl8125_rx_hash(struct rtl8125_private *tp,
                      struct RxDescV3 *descv3,
                      struct sk_buff *skb);
+#endif
 void _rtl8125_config_rss(struct rtl8125_private *tp);
 void rtl8125_config_rss(struct rtl8125_private *tp);
 void rtl8125_init_rss(struct rtl8125_private *tp);

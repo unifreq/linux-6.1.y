@@ -160,23 +160,3 @@ config R8125_PM_SUPPORT
 	  Enable PM Support.
 	  If unsure, say Y.
 
-config R8125_DOUBLE_VLAN
-        bool "Enable double vlan"
-	default n
-        depends on R8125
-        help
-	  If unsure, say N.
-
-config R8125_PAGE_REUSE
-        bool "Enable page reuse"
-	default n
-        depends on R8125
-        help
-	  If unsure, say N.
-
-config R8125_RX_PACKET_FRAGMENT
-        bool "Enable rx packet fragment"
-	default n
-        depends on R8125
-        help
-	  If unsure, say N.

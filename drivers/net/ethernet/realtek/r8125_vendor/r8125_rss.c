@@ -58,20 +58,24 @@ static int rtl8125_get_rss_hash_opts(struct rtl8125_private *tp,
         case TCP_V4_FLOW:
                 cmd->data |= RXH_L4_B_0_1 | RXH_L4_B_2_3;
         /* fallthrough */
+		fallthrough;
         case UDP_V4_FLOW:
                 if (tp->rss_flags & RTL_8125_RSS_FLAG_HASH_UDP_IPV4)
                         cmd->data |= RXH_L4_B_0_1 | RXH_L4_B_2_3;
         /* fallthrough */
+		fallthrough;
         case IPV4_FLOW:
                 cmd->data |= RXH_IP_SRC | RXH_IP_DST;
                 break;
         case TCP_V6_FLOW:
                 cmd->data |= RXH_L4_B_0_1 | RXH_L4_B_2_3;
         /* fallthrough */
+		fallthrough;
         case UDP_V6_FLOW:
                 if (tp->rss_flags & RTL_8125_RSS_FLAG_HASH_UDP_IPV6)
                         cmd->data |= RXH_L4_B_0_1 | RXH_L4_B_2_3;
         /* fallthrough */
+		fallthrough;
         case IPV6_FLOW:
                 cmd->data |= RXH_IP_SRC | RXH_IP_DST;
                 break;
@@ -88,7 +92,7 @@ int rtl8125_get_rxnfc(struct net_device *dev, struct ethtool_rxnfc *cmd,
         struct rtl8125_private *tp = netdev_priv(dev);
         int ret = -EOPNOTSUPP;
 
-        netif_info(tp, drv, tp->dev, "rss get rxnfc\n");
+        //netif_info(tp, drv, tp->dev, "rss get rxnfc\n");
 
         if (!(dev->features & NETIF_F_RXHASH))
                 return ret;
@@ -415,6 +419,7 @@ int rtl8125_set_rxfh(struct net_device *dev, const u32 *indir,
         return 0;
 }
 
+#if 0
 static u32 rtl8125_get_rx_desc_hash(struct rtl8125_private *tp,
                                     struct RxDescV3 *descv3)
 {
@@ -445,6 +450,7 @@ void rtl8125_rx_hash(struct rtl8125_private *tp,
                      (RTL8125_RXS_RSS_L4_TYPE_MASK & rss_header_info) ?
                      PKT_HASH_TYPE_L4 : PKT_HASH_TYPE_L3);
 }
+#endif
 
 void rtl8125_disable_rss(struct rtl8125_private *tp)
 {
