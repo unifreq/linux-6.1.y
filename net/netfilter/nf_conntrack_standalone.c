@@ -9,6 +9,7 @@
 #include <linux/percpu.h>
 #include <linux/netdevice.h>
 #include <linux/security.h>
+#include <linux/inet.h>
 #include <net/net_namespace.h>
 #ifdef CONFIG_SYSCTL
 #include <linux/sysctl.h>
@@ -465,6 +466,58 @@ static int ct_cpu_seq_show(struct seq_file *seq, void *v)
 	return 0;
 }
 
+struct kill_request {
+	u16 family;
+	union nf_inet_addr addr;
+};
+
+static int kill_matching(struct nf_conn *i, void *data)
+{
+	struct kill_request *kr = data;
+	struct nf_conntrack_tuple *t1 = &i->tuplehash[IP_CT_DIR_ORIGINAL].tuple;
+	struct nf_conntrack_tuple *t2 = &i->tuplehash[IP_CT_DIR_REPLY].tuple;
+
+	if (!kr->family)
+		return 1;
+
+	if (t1->src.l3num != kr->family)
+		return 0;
+
+	return (nf_inet_addr_cmp(&kr->addr, &t1->src.u3) ||
+	        nf_inet_addr_cmp(&kr->addr, &t1->dst.u3) ||
+	        nf_inet_addr_cmp(&kr->addr, &t2->src.u3) ||
+	        nf_inet_addr_cmp(&kr->addr, &t2->dst.u3));
+}
+
+static int ct_file_write(struct file *file, char *buf, size_t count)
+{
+	struct seq_file *seq = file->private_data;
+	struct nf_ct_iter_data iter_data;
+	struct kill_request kr = { };
+
+	if (count == 0)
+		return 0;
+
+	if (count >= INET6_ADDRSTRLEN)
+		count = INET6_ADDRSTRLEN - 1;
+
+	if (strnchr(buf, count, ':')) {
+		kr.family = AF_INET6;
+		if (!in6_pton(buf, count, (void *)&kr.addr, '\n', NULL))
+			return -EINVAL;
+	} else if (strnchr(buf, count, '.')) {
+		kr.family = AF_INET;
+		if (!in4_pton(buf, count, (void *)&kr.addr, '\n', NULL))
+			return -EINVAL;
+	}
+
+	iter_data.net = seq_file_net(seq);
+	iter_data.data = &kr;
+	nf_ct_iterate_cleanup_net(kill_matching, &iter_data);
+
+	return 0;
+}
+
 static const struct seq_operations ct_cpu_seq_ops = {
 	.start	= ct_cpu_seq_start,
 	.next	= ct_cpu_seq_next,
@@ -478,8 +531,9 @@ static int nf_conntrack_standalone_init_proc(struct net *net)
 	kuid_t root_uid;
 	kgid_t root_gid;
 
-	pde = proc_create_net("nf_conntrack", 0440, net->proc_net, &ct_seq_ops,
-			sizeof(struct ct_iter_state));
+	pde = proc_create_net_data_write("nf_conntrack", 0440, net->proc_net,
+					 &ct_seq_ops, &ct_file_write,
+					 sizeof(struct ct_iter_state), NULL);
 	if (!pde)
 		goto out_nf_conntrack;
 
@@ -583,6 +637,7 @@ enum nf_ct_sysctl_index {
 #endif
 	NF_SYSCTL_CT_PROTO_TCP_LOOSE,
 	NF_SYSCTL_CT_PROTO_TCP_LIBERAL,
+	NF_SYSCTL_CT_PROTO_TCP_NO_WINDOW_CHECK,
 	NF_SYSCTL_CT_PROTO_TCP_IGNORE_INVALID_RST,
 	NF_SYSCTL_CT_PROTO_TCP_MAX_RETRANS,
 	NF_SYSCTL_CT_PROTO_TIMEOUT_UDP,
@@ -785,6 +840,14 @@ static struct ctl_table nf_ct_sysctl_table[] = {
 	[NF_SYSCTL_CT_PROTO_TCP_LIBERAL] = {
 		.procname       = "nf_conntrack_tcp_be_liberal",
 		.maxlen		= sizeof(u8),
+		.mode           = 0644,
+		.proc_handler	= proc_dou8vec_minmax,
+		.extra1 	= SYSCTL_ZERO,
+		.extra2 	= SYSCTL_ONE,
+	},
+	[NF_SYSCTL_CT_PROTO_TCP_NO_WINDOW_CHECK] = {
+		.procname       = "nf_conntrack_tcp_no_window_check",
+		.maxlen         = sizeof(u8),
 		.mode           = 0644,
 		.proc_handler	= proc_dou8vec_minmax,
 		.extra1 	= SYSCTL_ZERO,
@@ -1000,6 +1063,7 @@ static void nf_conntrack_standalone_init_tcp_sysctl(struct net *net,
 
 	XASSIGN(LOOSE, &tn->tcp_loose);
 	XASSIGN(LIBERAL, &tn->tcp_be_liberal);
+	XASSIGN(NO_WINDOW_CHECK, &tn->tcp_no_window_check);
 	XASSIGN(MAX_RETRANS, &tn->tcp_max_retrans);
 	XASSIGN(IGNORE_INVALID_RST, &tn->tcp_ignore_invalid_rst);
 #undef XASSIGN
