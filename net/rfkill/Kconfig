@@ -32,3 +32,12 @@ config RFKILL_GPIO
 	help
 	  If you say yes here you get support of a generic gpio RFKILL
 	  driver.
+
+config RFKILL_GPIO_NEO
+	tristate "Neo GPIO RFKILL driver"
+	depends on RFKILL_FULL
+	depends on OF_GPIO
+	default n
+	help
+	  If you say yes here you get support of a new generic gpio RFKILL
+	  driver.
