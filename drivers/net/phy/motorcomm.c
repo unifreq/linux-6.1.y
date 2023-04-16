@@ -229,6 +229,13 @@
 #define YT8531_SYNCE_CFG_REG			0xA012
 #define YT8531_SCR_SYNCE_ENABLE			BIT(6)
 
+#define YT8521_EXTREG_LED_GENERAL_CFG		0xA00B
+#define YT8521_EXTREG_LED0_CFG			0xA00C
+#define YT8521_EXTREG_LED1_CFG			0xA00D
+#define YT8521_EXTREG_LED2_CFG			0xA00E
+#define YT8521_EXTREG_LED_BLINK_CFG		0xA00F
+
+
 /* Extended Register  end */
 
 struct yt8521_priv {
@@ -1213,6 +1220,20 @@ static int yt8521_resume(struct phy_device *phydev)
 	return yt8521_modify_utp_fiber_bmcr(phydev, BMCR_PDOWN, 0);
 }
 
+static int yt8521_led_init(struct phy_device *phydev)
+{
+	int ret;
+	u16 val;
+	
+	val = (0x7 << 4);
+	ret = ytphy_write_ext(phydev, YT8521_EXTREG_LED2_CFG, val);
+	
+	val = 0x7;
+	ret = ytphy_write_ext(phydev, YT8521_EXTREG_LED1_CFG, val);
+
+	return 0;
+}
+
 /**
  * yt8521_config_init() - called to initialize the PHY
  * @phydev: a pointer to a &struct phy_device
@@ -1275,6 +1296,8 @@ static int yt8521_config_init(struct phy_device *phydev)
 			       YT8521_CGR_RX_CLK_EN, 0);
 	if (ret < 0)
 		goto err_restore_page;
+
+	yt8521_led_init(phydev);
 
 err_restore_page:
 	return phy_restore_page(phydev, old_page, ret);
