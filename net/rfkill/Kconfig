@@ -35,7 +35,7 @@ config RFKILL_GPIO
 
 config RFKILL_GPIO_NEO
 	tristate "Neo GPIO RFKILL driver"
-	depends on RFKILL_FULL
+	depends on RFKILL
 	depends on OF_GPIO
 	default n
 	help

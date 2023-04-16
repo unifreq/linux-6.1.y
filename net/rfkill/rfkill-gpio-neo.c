@@ -204,7 +204,7 @@ static struct of_device_id rfkill_gpio_neo_of_match[] = {
 	{ .compatible = "rfkill-gpio-neo" },
 	{}
 };
-MODULE_DEVICE_TABLE(of, wlan_platdata_of_match);
+MODULE_DEVICE_TABLE(of, rfkill_gpio_neo_of_match);
 #endif /* CONFIG_OF */
 
 static struct platform_driver rfkill_gpio_neo_driver = {
