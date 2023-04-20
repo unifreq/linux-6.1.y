@@ -3,6 +3,7 @@
 /dts-v1/;
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/leds/common.h>
+#include <dt-bindings/input/input.h>
 #include <dt-bindings/pinctrl/rockchip.h>
 #include <dt-bindings/soc/rockchip,vop2.h>
 #include "rk3568.dtsi"
@@ -23,14 +24,6 @@
 		stdout-path = "serial2:1500000n8";
 	};
 
-	gmac0_xpcsclk: xpcs-gmac0-clock {
-		compatible = "fixed-clock";
-		clock-frequency = <125000000>;
-		clock-output-names = "clk_gmac0_xpcs_mii";
-		#clock-cells = <0>;
-	};
-
-//#ifdef DTS_NO_LEGACY
 	hdmi-con {
 		compatible = "hdmi-connector";
 		type = "a";
@@ -41,23 +34,64 @@
 			};
 		};
 	};
-//#endif
 
-	modem-rfkill {
-		compatible = "rfkill-gpio";
-		name = "modem-rfkill";
-		type = "wwan";
-		reset-gpios = <&gpio4 RK_PC2 GPIO_ACTIVE_HIGH>;
-		shutdown-gpios = <&gpio4 RK_PC4 GPIO_ACTIVE_LOW>;
+	vcc_sysin: vcc-sysin {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_sysin";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
 	};
 
-	sdio_pwrseq: sdio-pwrseq {
-		compatible = "mmc-pwrseq-simple";
-		clocks = <&pmucru CLK_RTC_32K>;
-		clock-names = "ext_clock";
-		pinctrl-names = "default";
-		pinctrl-0 = <&wifi_enable_h &clk32k_out1>;
-		reset-gpios = <&gpio2 RK_PB1 GPIO_ACTIVE_LOW>;
+	vcc_syson: vcc-syson {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_syson";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		vin-supply = <&vcc_sysin>;
+	};
+
+	vdd_gpu: vdd-gpu {
+		compatible = "pwm-regulator";
+		regulator-name = "vdd_gpu";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-init-microvolt = <900000>;
+		regulator-min-microvolt = <800000>;
+		regulator-max-microvolt = <1350000>;
+		regulator-ramp-delay = <6001>;
+		regulator-settling-time-up-us = <250>;
+
+		pwms = <&pwm2 0 5000 1>;
+		pwm-supply = <&vcc_syson>;
+	};
+
+	vdd_logic: vdd-logic {
+		compatible = "pwm-regulator";
+		regulator-name = "vdd_logic";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-init-microvolt = <900000>;
+		regulator-min-microvolt = <500000>;
+		regulator-max-microvolt = <1350000>;
+		regulator-ramp-delay = <6001>;
+		regulator-settling-time-up-us = <250>;
+
+		pwms = <&pwm1 0 5000 1>;
+		pwm-supply = <&vcc_syson>;
+	};
+
+	vcc3v3_sys: vcc3v3-sys {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_sys";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		vin-supply = <&vcc_syson>;
 	};
 
 	vcc_1v8: vcc-1v8 {
@@ -78,25 +112,6 @@
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		vin-supply = <&vcc3v3_sys>;
-	};
-
-	vcc_sysin: vcc-sysin {
-		compatible = "regulator-fixed";
-		regulator-name = "vcc_sysin";
-		regulator-always-on;
-		regulator-boot-on;
-		regulator-min-microvolt = <5000000>;
-		regulator-max-microvolt = <5000000>;
-	};
-
-	vcc_syson: vcc-syson {
-		compatible = "regulator-fixed";
-		regulator-name = "vcc_syson";
-		regulator-always-on;
-		regulator-boot-on;
-		regulator-min-microvolt = <5000000>;
-		regulator-max-microvolt = <5000000>;
-		vin-supply = <&vcc_sysin>;
 	};
 
 	vdda_0v9: vdda-0v9 {
@@ -148,12 +163,14 @@
 	vcc3v3_ngff: vcc3v3-ngff {
 		compatible = "regulator-fixed";
 		enable-active-high;
+		regulator-boot-on;
 		gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&ngffpcie_enable_h>;
 		regulator-name = "vcc3v3_ngff";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
+		startup-delay-us = <50000>;
 		vin-supply = <&vcc3v3_sys>;
 	};
 
@@ -169,16 +186,6 @@
 		vin-supply = <&vcc_3v3>;
 	};
 
-	vcc3v3_sys: vcc3v3-sys {
-		compatible = "regulator-fixed";
-		regulator-name = "vcc3v3_sys";
-		regulator-always-on;
-		regulator-boot-on;
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		vin-supply = <&vcc_syson>;
-	};
-
 	vcc5v0_usb_otg: vcc5v0-usb-otg {
 		compatible = "regulator-fixed";
 		enable-active-high;
@@ -191,34 +198,28 @@
 		vin-supply = <&vcc_sysin>;
 	};
 
-	vdd_gpu: vdd-gpu {
-		compatible = "pwm-regulator";
-		regulator-name = "vdd_gpu";
-		regulator-always-on;
-		regulator-boot-on;
-		regulator-init-microvolt = <900000>;
-		regulator-min-microvolt = <800000>;
-		regulator-max-microvolt = <1350000>;
-		regulator-ramp-delay = <6001>;
-		regulator-settling-time-up-us = <250>;
-
-		pwms = <&pwm2 0 5000 1>;
-		pwm-supply = <&vcc_syson>;
+	sdio_pwrseq: sdio-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		clocks = <&pmucru CLK_RTC_32K>;
+		clock-names = "ext_clock";
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_enable_h &clk32k_out1>;
+		reset-gpios = <&gpio2 RK_PB1 GPIO_ACTIVE_LOW>;
 	};
 
-	vdd_logic: vdd-logic {
-		compatible = "pwm-regulator";
-		regulator-name = "vdd_logic";
-		regulator-always-on;
-		regulator-boot-on;
-		regulator-init-microvolt = <900000>;
-		regulator-min-microvolt = <500000>;
-		regulator-max-microvolt = <1350000>;
-		regulator-ramp-delay = <6001>;
-		regulator-settling-time-up-us = <250>;
+	gmac0_xpcsclk: xpcs-gmac0-clock {
+		compatible = "fixed-clock";
+		clock-frequency = <125000000>;
+		clock-output-names = "clk_gmac0_xpcs_mii";
+		#clock-cells = <0>;
+	};
 
-		pwms = <&pwm1 0 5000 1>;
-		pwm-supply = <&vcc_syson>;
+	modem-rfkill {
+		compatible = "rfkill-gpio";
+		name = "modem-rfkill";
+		type = "wwan";
+		reset-gpios = <&gpio4 RK_PC2 GPIO_ACTIVE_HIGH>;
+		shutdown-gpios = <&gpio4 RK_PC4 GPIO_ACTIVE_LOW>;
 	};
 };
 
@@ -291,7 +292,6 @@
 	status = "okay";
 };
 
-//#ifdef DTS_NO_LEGACY
 &gpu {
 	mali-supply = <&vdd_gpu>;
 	status = "okay";
@@ -318,7 +318,6 @@
 &hdmi_sound {
 	status = "okay";
 };
-//#endif
 
 &i2c0 {
 	status = "okay";
@@ -348,11 +347,9 @@
 	status = "okay";
 };
 
-//#ifdef DTS_NO_LEGACY
 &i2s0_8ch {
 	status = "okay";
 };
-//#endif
 
 &mdio0 {
 	sgmii_phy: ethernet-phy@0 {
@@ -458,6 +455,7 @@
 	pinctrl-0 = <&emmc_bus8 &emmc_clk &emmc_cmd>;
 	vmmc-supply = <&vcc_3v3>;
 	vqmmc-supply = <&vcc_1v8>;
+	status = "okay";
 };
 
 &sdmmc0 {
@@ -534,20 +532,33 @@
 	status = "okay";
 };
 
-&usb_host0_ehci {
-	status = "okay";
-};
-
 &usb_host0_ohci {
 	status = "okay";
 };
 
+/* m.2: bluetooth */
+&usb_host0_ehci {
+	status = "okay";
+};
+
+/* not used */
+&usb_host1_ohci {
+	status = "disabled";
+};
+
+/* not used */
+&usb_host1_ehci {
+	status = "disabled";
+};
+
 &usb_host0_xhci {
 	extcon = <&usb2phy0>;
+	dr_mode = "host";
 	status = "okay";
 };
 
 &usb_host1_xhci {
+	dr_mode = "host";
 	status = "okay";
 };
 
@@ -569,12 +580,15 @@
 	status = "okay";
 };
 
+&usb2phy1_host {
+	status = "okay";
+};
+
 &usb2phy1_otg {
 	phy-supply = <&vcc5v0_usb_otg>;
 	status = "okay";
 };
 
-//#ifdef DTS_NO_LEGACY
 &vop {
 	assigned-clocks = <&cru DCLK_VOP0>, <&cru DCLK_VOP1>;
 	assigned-clock-parents = <&pmucru PLL_HPLL>, <&cru PLL_VPLL>;
@@ -591,7 +605,6 @@
 		remote-endpoint = <&hdmi_in_vp0>;
 	};
 };
-//#endif
 
 &xin32k {
 	pinctrl-names = "default";
