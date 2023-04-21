@@ -501,6 +501,8 @@
 };
 
 &sdmmc1 {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	bus-width = <4>;
 	cap-sd-highspeed;
 	keep-power-in-suspend;
@@ -522,7 +524,7 @@
 	no-sd;
 	wakeup-source;
 
-	ath10k: wifi@1 {
+	ath10k: sdio_wifi@1 {
 		reg = <1>;
 		compatible = "qcom,ath10k";
 		interrupt-parent = <&gpio2>;
