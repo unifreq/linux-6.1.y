@@ -511,11 +511,13 @@
 	mmc-pwrseq = <&sdio_pwrseq>;
 	status = "okay";
 	max-frequency = <50000000>;
+	//max-frequency = <150000000>;
 	cap-sdio-irq;
 	vmmc-supply = <&vcc3v3_sys>;
 	vqmmc-supply = <&vcc_1v8>;
 	sd-uhs-sdr25;
 	sd-uhs-sdr50;
+	//sd-uhs-sdr104;
 	no-mmc;
 	no-sd;
 	wakeup-source;
@@ -577,7 +579,11 @@
 	status = "okay";
 };
 
+/* set speed to high-speed (usb2.0) */
 &usb_host1_xhci {
+	phys = <&usb2phy0_host>;
+	phy-names = "usb2-phy";
+	maximum-speed = "high-speed";
 	extcon = <&usb2phy0>;
 	status = "okay";
 };
