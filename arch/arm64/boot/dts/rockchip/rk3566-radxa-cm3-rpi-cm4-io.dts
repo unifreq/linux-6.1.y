@@ -1,0 +1,148 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
+ * Copyright (c) 2021 Radxa Limited.
+ *
+ */
+
+/dts-v1/;
+
+#include "rk3566-radxa-rock-3-compute-module.dtsi"
+
+/ {
+	model = "Radxa CM3 RPI CM4 IO";
+	compatible = "radxa,radxa-cm3-rpi-cm4-io", "rockchip,rk3566";
+
+	vcc_sd: sdmmc-regulator {
+		compatible = "regulator-fixed";
+		enable-active-high;
+		gpio = <&gpio0 RK_PA5 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&sdmmc_pwren>;
+		regulator-name = "vcc_sd";
+		regulator-always-on;
+	};
+
+	hdmi-con {
+		compatible = "hdmi-connector";
+		type = "a";
+
+		port {
+			hdmi_con_in: endpoint {
+				remote-endpoint = <&hdmi_out_con>;
+			};
+		};
+	};
+
+	hdmi_sound: hdmi-sound {
+		compatible = "simple-audio-card";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,mclk-fs = <128>;
+		simple-audio-card,name = "rockchip,hdmi";
+
+		simple-audio-card,cpu {
+				sound-dai = <&i2s0_8ch>;
+		};
+
+		simple-audio-card,codec {
+				sound-dai = <&hdmi>;
+		};
+	};
+
+};
+
+&uart2 {
+	status = "okay";
+};
+
+&i2s0_8ch {
+	status = "okay";
+};
+
+&display_subsystem {
+    status = "okay";
+};
+
+&hdmi {
+	avdd-0v9-supply = <&vdda_0v9>;
+	avdd-1v8-supply = <&vcc_1v8>;
+	status = "okay";
+};
+
+&hdmi_in {
+	hdmi_in_vp0: endpoint {
+		remote-endpoint = <&vp0_out_hdmi>;
+	};
+};
+
+&hdmi_out {
+	hdmi_out_con: endpoint {
+		remote-endpoint = <&hdmi_con_in>;
+	};
+};
+
+&hdmi_sound {
+	status = "okay";
+};
+
+&gpio_leds {
+	pi-led-green {
+		gpios = <&gpio4 4 GPIO_ACTIVE_LOW>;
+		linux,default-trigger = "timer";
+		default-state = "on";
+		pinctrl-0 = <&pi_led>;
+	};
+
+	pwr-led-red {
+		gpios = <&gpio4 15 GPIO_ACTIVE_LOW>;
+		linux,default-trigger = "none";
+		default-state = "on";
+		pinctrl-0 = <&pwr_led>;
+	};
+};
+
+&sdmmc0 {
+	max-frequency = <100000000>;
+	bus-width = <4>;
+
+	supports-sd;
+	cap-sd-highspeed;
+	cap-mmc-highspeed;
+	sd-uhs-sdr50;
+
+	disable-wp;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc0_bus4 &sdmmc0_clk &sdmmc0_cmd &sdmmc0_det>;
+	vmmc-supply = <&vcc_sd>;
+	vqmmc-supply = <&vccio_sd>;
+	status = "okay";
+};
+
+&combphy2 {
+	status = "okay";
+};
+
+&pcie2x1 {
+	reset-gpios = <&gpio1 RK_PB2 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc3v3_sys>;
+	pinctrl-0 = <&pcie20m2_pins>;
+	status = "okay";
+};
+
+&pinctrl {
+	leds {
+		pi_led: pi-led {
+			rockchip,pins = <4 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		pwr_led: pwr-led {
+			rockchip,pins = <4 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	sdcard {
+		sdmmc_pwren: sdmmc-pwren {
+			rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};
