@@ -549,6 +549,10 @@
 	};
 };
 
+&i2c5 {
+	status = "okay";
+};
+
 &i2s0_8ch {
 	status = "okay";
 };
