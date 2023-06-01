@@ -145,7 +145,6 @@
 		vin-supply = <&vcc3v3_sys>;
 	};
 
-	/* 5g lte modem power */
 	vcc5v0_usb_otg: vcc5v0-usb-otg-regulator {
 		compatible = "regulator-fixed";
 
