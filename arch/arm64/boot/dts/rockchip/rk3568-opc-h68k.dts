@@ -110,6 +110,42 @@
 		vin-supply = <&vcc5v0_sys>;
 	};
 
+	/* wifi power
+	   for H68K-MAX & H69K-MAX
+	 */
+	vcc3v3_pcie2: vcc3v3-pcie2-regulator {
+		compatible = "regulator-fixed";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-name = "vcc3v3_pcie2";
+		regulator-boot-on;
+
+		gpio = <&gpio3 RK_PD5 GPIO_ACTIVE_LOW>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc3v3_pcie2_en>;
+		vin-supply = <&vcc3v3_sys>;
+	};
+
+	/* eth 2.5g power
+	   for H66K H69K
+	 */
+	vcc3v3_pcie3: vcc3v3-pcie3-regulator {
+		compatible = "regulator-fixed";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-name = "vcc3v3_pcie3";
+		regulator-boot-on;
+
+		enable-active-high;
+		gpio = <&gpio0 RK_PC4 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc3v3_pcie3_en>;
+		vin-supply = <&vcc3v3_sys>;
+	};
+
+	/* 5g lte modem power */
 	vcc5v0_usb_otg: vcc5v0-usb-otg-regulator {
 		compatible = "regulator-fixed";
 
@@ -577,14 +613,16 @@
 		reg = <0x0>;
 	};
 };
+
 /*
 &gic {
 	mbi-ranges = <202 56>, <264 56>;
 };
 */
+
 &pcie2x1 {
 	reset-gpios = <&gpio2 RK_PD6 GPIO_ACTIVE_HIGH>;
-	vpcie3v3-supply = <&vcc3v3_sys>;
+	vpcie3v3-supply = <&vcc3v3_pcie2>;
 	status = "okay";
 };
 
@@ -596,7 +634,7 @@
 &pcie3x1 {
 	num-lanes = <1>;
 	reset-gpios = <&gpio3 RK_PA4 GPIO_ACTIVE_HIGH>;
-	vpcie3v3-supply = <&vcc3v3_sys>;
+	vpcie3v3-supply = <&vcc3v3_pcie3>;
 	status = "okay";
 
 	pcie@0,0 {
@@ -616,7 +654,7 @@
 	num-lanes = <1>;
 	rockchip,init-delay-ms = <100>;
 	reset-gpios = <&gpio2 RK_PD0 GPIO_ACTIVE_HIGH>;
-	vpcie3v3-supply = <&vcc3v3_sys>;
+	vpcie3v3-supply = <&vcc3v3_pcie3>;
 	status = "okay";
 
 	pcie@0,0 {
@@ -674,6 +712,16 @@
 	sd {
 		vcc3v3_sd_en: vcc3v3-sd_en {
 			rockchip,pins = <0 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	pcie {
+		vcc3v3_pcie2_en: vcc3v3_pcie2_en {
+			rockchip,pins = <3 RK_PD5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		vcc3v3_pcie3_en: vcc3v3_pcie3_en {
+			rockchip,pins = <0 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };

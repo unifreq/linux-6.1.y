@@ -9,23 +9,6 @@
 / {
 	model = "HINLINK OPC-H66K Board";
 	compatible = "hinlink,opc-h66k", "rockchip,rk3568";
-
-	vcc3v3_pcie: vcc3v3-pcie-regulator {
-		compatible = "regulator-fixed";
-
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		regulator-name = "vcc3v3_pcie";
-		regulator-always-on;
-		regulator-boot-on;
-
-		enable-active-high;
-		gpio = <&gpio0 RK_PC4 GPIO_ACTIVE_HIGH>;
-
-		pinctrl-names = "default";
-		pinctrl-0 = <&vcc3v3_pcie_en>;
-		vin-supply = <&vcc3v3_sys>;
-	};
 };
 
 &gmac0 {
@@ -35,23 +18,9 @@
 &gmac1 {
 	status = "disabled";
 };
+
 /*
 &gic {
 	mbi-ranges = <105 20>, <202 56>, <264 56>;
 };
 */
-&pcie3x1 {
-	vpcie3v3-supply = <&vcc3v3_pcie>;
-};
-
-&pcie3x2 {
-	vpcie3v3-supply = <&vcc3v3_pcie>;
-};
-
-&pinctrl {
-	pcie {
-		vcc3v3_pcie_en: vcc3v3_pcie_en {
-			rockchip,pins = <0 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-	};
-};
