@@ -27,11 +27,11 @@
 	};
 
 	/* 5g lte modem power */
-	vcc3v3_lte_modem: vcc3v3-lte-modem {
+	vcc3v8_lte_modem: vcc3v8-lte-modem {
 		compatible = "regulator-fixed";
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		regulator-name = "vcc3v3_lte_modem";
+		regulator-min-microvolt = <3800000>;
+		regulator-max-microvolt = <3800000>;
+		regulator-name = "vcc3v8_lte_modem";
 		regulator-boot-on;
 
 		enable-active-high;
@@ -39,7 +39,7 @@
 
 		pinctrl-names = "default";
 		pinctrl-0 = <&lte_modem_pwr_en>;
-		vin-supply = <&vcc3v3_sys>;
+		vin-supply = <&vcc5v0_sys>;
 	};
 
 	rfkill_switchs {
