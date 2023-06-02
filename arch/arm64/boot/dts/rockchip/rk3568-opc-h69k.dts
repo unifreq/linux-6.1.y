@@ -82,3 +82,22 @@
 &sata0 {
 	target-supply = <&vcc5v0_sata>;
 };
+
+&i2c5 {
+	status = "okay";
+
+	ssd1306: oled@3c {
+		compatible = "solomon,ssd1306fb-i2c";
+		reg = <0x3c>;
+		// reset-gpios = <>;
+		solomon,width = <128>;
+		solomon,height = <64>;
+		//solomon,com-lrremap;
+		//solomon,com-offset = <32>;
+		//solomon,lookup-table = /bits/ 8 <0x3f 0x3f 0x3f 0x3f>;
+		solomon,com-invdir = <1>;
+		solomon,prechargep1 = <0x1>;
+		solomon,prechargep2 = <0xf>;
+		solomon,page-offset = <0>;
+	};
+};
