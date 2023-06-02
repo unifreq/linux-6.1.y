@@ -95,7 +95,6 @@
 		//solomon,com-lrremap;
 		//solomon,com-offset = <32>;
 		//solomon,lookup-table = /bits/ 8 <0x3f 0x3f 0x3f 0x3f>;
-		solomon,com-invdir = <1>;
 		solomon,prechargep1 = <0x1>;
 		solomon,prechargep2 = <0xf>;
 		solomon,page-offset = <0>;
