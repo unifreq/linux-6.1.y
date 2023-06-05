@@ -601,8 +601,9 @@ static void iwl_mvm_skb_prepare_status(struct sk_buff *skb,
 
 static int iwl_mvm_get_ctrl_vif_queue(struct iwl_mvm *mvm,
 				      struct ieee80211_tx_info *info,
-				      struct ieee80211_hdr *hdr)
+				      struct sk_buff *skb)
 {
+	struct ieee80211_hdr *hdr = (void *)skb->data;
 	struct iwl_mvm_vif *mvmvif =
 		iwl_mvm_vif_from_mac80211(info->control.vif);
 	__le16 fc = hdr->frame_control;
@@ -621,7 +622,7 @@ static int iwl_mvm_get_ctrl_vif_queue(struct iwl_mvm *mvm,
 		 * reason 7 ("Class 3 frame received from nonassociated STA").
 		 */
 		if (ieee80211_is_mgmt(fc) &&
-		    (!ieee80211_is_bufferable_mmpdu(fc) ||
+		    (!ieee80211_is_bufferable_mmpdu(skb) ||
 		     ieee80211_is_deauth(fc) || ieee80211_is_disassoc(fc)))
 			return mvm->probe_queue;
 
@@ -740,7 +741,7 @@ int iwl_mvm_tx_skb_non_sta(struct iwl_mvm *mvm, struct sk_buff *skb)
 			else
 				sta_id = mvmvif->mcast_sta.sta_id;
 
-			queue = iwl_mvm_get_ctrl_vif_queue(mvm, &info, hdr);
+			queue = iwl_mvm_get_ctrl_vif_queue(mvm, &info, skb);
 		} else if (info.control.vif->type == NL80211_IFTYPE_MONITOR) {
 			queue = mvm->snif_queue;
 			sta_id = mvm->snif_sta.sta_id;

@@ -140,17 +140,15 @@ static void __cleanup_single_sta(struct sta_info *sta)
 		atomic_dec(&ps->num_sta_ps);
 	}
 
-	if (sta->sta.txq[0]) {
-		for (i = 0; i < ARRAY_SIZE(sta->sta.txq); i++) {
-			struct txq_info *txqi;
+	for (i = 0; i < ARRAY_SIZE(sta->sta.txq); i++) {
+		struct txq_info *txqi;
 
-			if (!sta->sta.txq[i])
-				continue;
+		if (!sta->sta.txq[i])
+			continue;
 
-			txqi = to_txq_info(sta->sta.txq[i]);
+		txqi = to_txq_info(sta->sta.txq[i]);
 
-			ieee80211_txq_purge(local, txqi);
-		}
+		ieee80211_txq_purge(local, txqi);
 	}
 
 	for (ac = 0; ac < IEEE80211_NUM_ACS; ac++) {
@@ -425,8 +423,7 @@ void sta_info_free(struct ieee80211_local *local, struct sta_info *sta)
 
 	sta_dbg(sta->sdata, "Destroyed STA %pM\n", sta->sta.addr);
 
-	if (sta->sta.txq[0])
-		kfree(to_txq_info(sta->sta.txq[0]));
+	kfree(to_txq_info(sta->sta.txq[0]));
 	kfree(rcu_dereference_raw(sta->sta.rates));
 #ifdef CONFIG_MAC80211_MESH
 	kfree(sta->mesh);
@@ -527,6 +524,8 @@ __sta_info_alloc(struct ieee80211_sub_if_data *sdata,
 	struct ieee80211_local *local = sdata->local;
 	struct ieee80211_hw *hw = &local->hw;
 	struct sta_info *sta;
+	void *txq_data;
+	int size;
 	int i;
 
 	sta = kzalloc(sizeof(*sta) + hw->sta_data_size, gfp);
@@ -554,6 +553,7 @@ __sta_info_alloc(struct ieee80211_sub_if_data *sdata,
 	INIT_WORK(&sta->drv_deliver_wk, sta_deliver_ps_frames);
 	INIT_WORK(&sta->ampdu_mlme.work, ieee80211_ba_session_work);
 	mutex_init(&sta->ampdu_mlme.mtx);
+	sta->ampdu_mlme.dialog_token_allocator = prandom_u32_max(U8_MAX);
 #ifdef CONFIG_MAC80211_MESH
 	if (ieee80211_vif_is_mesh(&sdata->vif)) {
 		sta->mesh = kzalloc(sizeof(*sta->mesh), gfp);
@@ -591,26 +591,26 @@ __sta_info_alloc(struct ieee80211_sub_if_data *sdata,
 
 	sta->sta_state = IEEE80211_STA_NONE;
 
+	if (sdata->vif.type == NL80211_IFTYPE_MESH_POINT)
+		sta->amsdu_mesh_control = -1;
+
 	/* Mark TID as unreserved */
 	sta->reserved_tid = IEEE80211_TID_UNRESERVED;
 
 	sta->last_connected = ktime_get_seconds();
 
-	if (local->ops->wake_tx_queue) {
-		void *txq_data;
-		int size = sizeof(struct txq_info) +
-			   ALIGN(hw->txq_data_size, sizeof(void *));
+	size = sizeof(struct txq_info) +
+	       ALIGN(hw->txq_data_size, sizeof(void *));
 
-		txq_data = kcalloc(ARRAY_SIZE(sta->sta.txq), size, gfp);
-		if (!txq_data)
-			goto free;
+	txq_data = kcalloc(ARRAY_SIZE(sta->sta.txq), size, gfp);
+	if (!txq_data)
+		goto free;
 
-		for (i = 0; i < ARRAY_SIZE(sta->sta.txq); i++) {
-			struct txq_info *txq = txq_data + i * size;
+	for (i = 0; i < ARRAY_SIZE(sta->sta.txq); i++) {
+		struct txq_info *txq = txq_data + i * size;
 
-			/* might not do anything for the bufferable MMPDU TXQ */
-			ieee80211_txq_init(sdata, sta, txq, i);
-		}
+		/* might not do anything for the (bufferable) MMPDU TXQ */
+		ieee80211_txq_init(sdata, sta, txq, i);
 	}
 
 	if (sta_prepare_rate_control(local, sta, gfp))
@@ -684,8 +684,7 @@ __sta_info_alloc(struct ieee80211_sub_if_data *sdata,
 	return sta;
 
 free_txq:
-	if (sta->sta.txq[0])
-		kfree(to_txq_info(sta->sta.txq[0]));
+	kfree(to_txq_info(sta->sta.txq[0]));
 free:
 	sta_info_free_link(&sta->deflink);
 #ifdef CONFIG_MAC80211_MESH
@@ -1270,6 +1269,18 @@ static void __sta_info_destroy_part2(struct sta_info *sta)
 	if (sta->sta_state == IEEE80211_STA_AUTHORIZED) {
 		ret = sta_info_move_state(sta, IEEE80211_STA_ASSOC);
 		WARN_ON_ONCE(ret);
+	}
+
+	/* Flush queues before removing keys, as that might remove them
+	 * from hardware, and then depending on the offload method, any
+	 * frames sitting on hardware queues might be sent out without
+	 * any encryption at all.
+	 */
+	if (local->ops->set_key) {
+		if (local->ops->flush_sta)
+			drv_flush_sta(local, sta->sdata, sta);
+		else
+			ieee80211_flush_queues(local, sta->sdata, false);
 	}
 
 	/* now keys can no longer be reached */
@@ -1959,9 +1970,6 @@ ieee80211_sta_ps_deliver_response(struct sta_info *sta,
 		 * TIM recalculation.
 		 */
 
-		if (!sta->sta.txq[0])
-			return;
-
 		for (tid = 0; tid < ARRAY_SIZE(sta->sta.txq); tid++) {
 			if (!sta->sta.txq[tid] ||
 			    !(driver_release_tids & BIT(tid)) ||
@@ -2446,7 +2454,7 @@ static void sta_set_tidstats(struct sta_info *sta,
 		tidstats->tx_msdu_failed = sta->deflink.status_stats.msdu_failed[tid];
 	}
 
-	if (local->ops->wake_tx_queue && tid < IEEE80211_NUM_TIDS) {
+	if (tid < IEEE80211_NUM_TIDS) {
 		spin_lock_bh(&local->fq.lock);
 		rcu_read_lock();
 
@@ -2774,9 +2782,6 @@ unsigned long ieee80211_sta_last_active(struct sta_info *sta)
 
 static void sta_update_codel_params(struct sta_info *sta, u32 thr)
 {
-	if (!sta->sdata->local->ops->wake_tx_queue)
-		return;
-
 	if (thr && thr < STA_SLOW_THRESHOLD * sta->local->num_sta) {
 		sta->cparams.target = MS2TIME(50);
 		sta->cparams.interval = MS2TIME(300);

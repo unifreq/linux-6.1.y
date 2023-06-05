@@ -1122,11 +1122,11 @@ static int ieee80211_assign_beacon(struct ieee80211_sub_if_data *sdata,
 	if (params->mbssid_ies) {
 		mbssid = params->mbssid_ies;
 		size += struct_size(new->mbssid_ies, elem, mbssid->cnt);
-		size += ieee80211_get_mbssid_beacon_len(mbssid);
+		size += ieee80211_get_mbssid_beacon_len(mbssid, mbssid->cnt);
 	} else if (old && old->mbssid_ies) {
 		mbssid = old->mbssid_ies;
 		size += struct_size(new->mbssid_ies, elem, mbssid->cnt);
-		size += ieee80211_get_mbssid_beacon_len(mbssid);
+		size += ieee80211_get_mbssid_beacon_len(mbssid, mbssid->cnt);
 	}
 
 	new = kzalloc(size, GFP_KERNEL);
@@ -1252,6 +1252,29 @@ static int ieee80211_start_ap(struct wiphy *wiphy, struct net_device *dev,
 	prev_beacon_int = link_conf->beacon_int;
 	link_conf->beacon_int = params->beacon_interval;
 
+	if (params->ht_cap)
+		link_conf->ht_ldpc =
+			params->ht_cap->cap_info &
+				cpu_to_le16(IEEE80211_HT_CAP_LDPC_CODING);
+
+	if (params->vht_cap) {
+		link_conf->vht_ldpc =
+			params->vht_cap->vht_cap_info &
+				cpu_to_le32(IEEE80211_VHT_CAP_RXLDPC);
+		link_conf->vht_su_beamformer =
+			params->vht_cap->vht_cap_info &
+				cpu_to_le32(IEEE80211_VHT_CAP_SU_BEAMFORMER_CAPABLE);
+		link_conf->vht_su_beamformee =
+			params->vht_cap->vht_cap_info &
+				cpu_to_le32(IEEE80211_VHT_CAP_SU_BEAMFORMEE_CAPABLE);
+		link_conf->vht_mu_beamformer =
+			params->vht_cap->vht_cap_info &
+				cpu_to_le32(IEEE80211_VHT_CAP_MU_BEAMFORMER_CAPABLE);
+		link_conf->vht_mu_beamformee =
+			params->vht_cap->vht_cap_info &
+				cpu_to_le32(IEEE80211_VHT_CAP_MU_BEAMFORMEE_CAPABLE);
+	}
+
 	if (params->he_cap && params->he_oper) {
 		link_conf->he_support = true;
 		link_conf->htc_trig_based_pkt_ext =
@@ -1264,6 +1287,24 @@ static int ieee80211_start_ap(struct wiphy *wiphy, struct net_device *dev,
 
 		if (params->beacon.he_bss_color.enabled)
 			changed |= BSS_CHANGED_HE_BSS_COLOR;
+	}
+
+	if (params->he_cap) {
+		link_conf->he_ldpc =
+			params->he_cap->phy_cap_info[1] &
+				IEEE80211_HE_PHY_CAP1_LDPC_CODING_IN_PAYLOAD;
+		link_conf->he_su_beamformer =
+			params->he_cap->phy_cap_info[3] &
+				IEEE80211_HE_PHY_CAP3_SU_BEAMFORMER;
+		link_conf->he_su_beamformee =
+			params->he_cap->phy_cap_info[4] &
+				IEEE80211_HE_PHY_CAP4_SU_BEAMFORMEE;
+		link_conf->he_mu_beamformer =
+			params->he_cap->phy_cap_info[4] &
+				IEEE80211_HE_PHY_CAP4_MU_BEAMFORMER;
+		link_conf->he_full_ul_mumimo =
+			params->he_cap->phy_cap_info[2] &
+				IEEE80211_HE_PHY_CAP2_UL_MU_FULL_MU_MIMO;
 	}
 
 	if (sdata->vif.type == NL80211_IFTYPE_AP &&
@@ -1520,7 +1561,6 @@ static int ieee80211_stop_ap(struct wiphy *wiphy, struct net_device *dev,
 	link_conf->bssid_indicator = 0;
 
 	__sta_info_flush(sdata, true);
-	ieee80211_free_keys(sdata, true);
 
 	link_conf->enable_beacon = false;
 	sdata->beacon_rate_set = false;
@@ -2729,6 +2769,8 @@ static int ieee80211_scan(struct wiphy *wiphy,
 		 */
 		fallthrough;
 	case NL80211_IFTYPE_AP:
+		/* skip check */
+		break;
 		/*
 		 * If the scan has been forced (and the driver supports
 		 * forcing), don't care about being beaconing already.
@@ -3001,6 +3043,19 @@ static int ieee80211_get_tx_power(struct wiphy *wiphy,
 		*dbm = local->hw.conf.power_level;
 	else
 		*dbm = sdata->vif.bss_conf.txpower;
+
+	return 0;
+}
+
+static int ieee80211_set_antenna_gain(struct wiphy *wiphy, int dbi)
+{
+	struct ieee80211_local *local = wiphy_priv(wiphy);
+
+	if (dbi < 0)
+		return -EINVAL;
+
+	local->user_antenna_gain = dbi;
+	ieee80211_hw_config(local, 0);
 
 	return 0;
 }
@@ -3343,8 +3398,11 @@ cfg80211_beacon_dup(struct cfg80211_beacon_data *beacon)
 
 	len = beacon->head_len + beacon->tail_len + beacon->beacon_ies_len +
 	      beacon->proberesp_ies_len + beacon->assocresp_ies_len +
-	      beacon->probe_resp_len + beacon->lci_len + beacon->civicloc_len +
-	      ieee80211_get_mbssid_beacon_len(beacon->mbssid_ies);
+	      beacon->probe_resp_len + beacon->lci_len + beacon->civicloc_len;
+
+	if (beacon->mbssid_ies)
+		len += ieee80211_get_mbssid_beacon_len(beacon->mbssid_ies,
+						       beacon->mbssid_ies->cnt);
 
 	new_beacon = kzalloc(sizeof(*new_beacon) + len, GFP_KERNEL);
 	if (!new_beacon)
@@ -4346,9 +4404,6 @@ static int ieee80211_get_txq_stats(struct wiphy *wiphy,
 	struct ieee80211_sub_if_data *sdata;
 	int ret = 0;
 
-	if (!local->ops->wake_tx_queue)
-		return 1;
-
 	spin_lock_bh(&local->fq.lock);
 	rcu_read_lock();
 
@@ -4915,6 +4970,7 @@ const struct cfg80211_ops mac80211_config_ops = {
 	.set_wiphy_params = ieee80211_set_wiphy_params,
 	.set_tx_power = ieee80211_set_tx_power,
 	.get_tx_power = ieee80211_get_tx_power,
+	.set_antenna_gain = ieee80211_set_antenna_gain,
 	.rfkill_poll = ieee80211_rfkill_poll,
 	CFG80211_TESTMODE_CMD(ieee80211_testmode_cmd)
 	CFG80211_TESTMODE_DUMP(ieee80211_testmode_dump)

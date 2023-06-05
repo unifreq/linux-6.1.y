@@ -4844,9 +4844,6 @@ static void iwl_mvm_mac_flush(struct ieee80211_hw *hw,
 		return;
 	}
 
-	if (vif->type != NL80211_IFTYPE_STATION)
-		return;
-
 	/* Make sure we're done with the deferred traffic before flushing */
 	flush_work(&mvm->add_stream_wk);
 
@@ -4863,9 +4860,6 @@ static void iwl_mvm_mac_flush(struct ieee80211_hw *hw,
 		mvmsta = iwl_mvm_sta_from_mac80211(sta);
 		if (mvmsta->vif != vif)
 			continue;
-
-		/* make sure only TDLS peers or the AP are flushed */
-		WARN_ON(i != mvmvif->ap_sta_id && !sta->tdls);
 
 		if (drop) {
 			if (iwl_mvm_flush_sta(mvm, mvmsta, false))
@@ -4884,6 +4878,31 @@ static void iwl_mvm_mac_flush(struct ieee80211_hw *hw,
 	 */
 	if (!drop && !iwl_mvm_has_new_tx_api(mvm))
 		iwl_trans_wait_tx_queues_empty(mvm->trans, msk);
+}
+
+static void iwl_mvm_mac_flush_sta(struct ieee80211_hw *hw,
+				  struct ieee80211_vif *vif,
+				  struct ieee80211_sta *sta)
+{
+	struct iwl_mvm *mvm = IWL_MAC80211_GET_MVM(hw);
+	int i;
+
+	mutex_lock(&mvm->mutex);
+	for (i = 0; i < mvm->fw->ucode_capa.num_stations; i++) {
+		struct iwl_mvm_sta *mvmsta;
+		struct ieee80211_sta *tmp;
+
+		tmp = rcu_dereference_protected(mvm->fw_id_to_mac_id[i],
+						lockdep_is_held(&mvm->mutex));
+		if (tmp != sta)
+			continue;
+
+		mvmsta = iwl_mvm_sta_from_mac80211(sta);
+
+		if (iwl_mvm_flush_sta(mvm, mvmsta, false))
+			IWL_ERR(mvm, "flush request fail\n");
+	}
+	mutex_unlock(&mvm->mutex);
 }
 
 static int iwl_mvm_mac_get_survey(struct ieee80211_hw *hw, int idx,
@@ -5413,6 +5432,7 @@ const struct ieee80211_ops iwl_mvm_hw_ops = {
 	.mgd_complete_tx = iwl_mvm_mac_mgd_complete_tx,
 	.mgd_protect_tdls_discover = iwl_mvm_mac_mgd_protect_tdls_discover,
 	.flush = iwl_mvm_mac_flush,
+	.flush_sta = iwl_mvm_mac_flush_sta,
 	.sched_scan_start = iwl_mvm_mac_sched_scan_start,
 	.sched_scan_stop = iwl_mvm_mac_sched_scan_stop,
 	.set_key = iwl_mvm_mac_set_key,
