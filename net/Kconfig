@@ -458,9 +458,6 @@ config FAILOVER
 	  migration of VMs with direct attached VFs by failing over to the
 	  paravirtual datapath when the VF is unplugged.
 
-config SHORTCUT_FE
-	bool "Enables kernel network stack path for Shortcut  Forwarding Engine"
-
 config ETHTOOL_NETLINK
 	bool "Netlink interface for ethtool"
 	default y

@@ -3586,17 +3586,9 @@ static int xmit_one(struct sk_buff *skb, struct net_device *dev,
 {
 	unsigned int len;
 	int rc;
-#ifdef CONFIG_SHORTCUT_FE
-	/* If this skb has been fast forwarded then we don't want it to
-	 * go to any taps (by definition we're trying to bypass them).
-	 */
-	if (!skb->fast_forwarded) {
-#endif
+
 	if (dev_nit_active(dev))
 		dev_queue_xmit_nit(skb, dev);
-#ifdef CONFIG_SHORTCUT_FE
-	}
-#endif
 
 	len = skb->len;
 	trace_net_dev_start_xmit(skb, dev);
@@ -5250,11 +5242,6 @@ void netdev_rx_handler_unregister(struct net_device *dev)
 }
 EXPORT_SYMBOL_GPL(netdev_rx_handler_unregister);
 
-#ifdef CONFIG_SHORTCUT_FE
-int (*athrs_fast_nat_recv)(struct sk_buff *skb) __rcu __read_mostly;
-EXPORT_SYMBOL_GPL(athrs_fast_nat_recv);
-#endif
-
 /*
  * Limit the use of PFMEMALLOC reserves to those protocols that implement
  * the special handling of PFMEMALLOC skbs.
@@ -5303,10 +5290,6 @@ static int __netif_receive_skb_core(struct sk_buff **pskb, bool pfmemalloc,
 	int ret = NET_RX_DROP;
 	__be16 type;
 
-#ifdef CONFIG_SHORTCUT_FE
-	int (*fast_recv)(struct sk_buff *skb);
-#endif
-
 	net_timestamp_check(!READ_ONCE(netdev_tstamp_prequeue), skb);
 
 	trace_netif_receive_skb(skb);
@@ -5344,15 +5327,6 @@ another_round:
 			goto out;
 	}
 
-#ifdef CONFIG_SHORTCUT_FE
-	fast_recv = rcu_dereference(athrs_fast_nat_recv);
-	if (fast_recv) {
-		if (fast_recv(skb)) {
-			ret = NET_RX_SUCCESS;
-			goto out;
-		}
-	}
-#endif
 	if (skb_skip_tc_classify(skb))
 		goto skip_classify;
 
@@ -7632,48 +7606,6 @@ static void __netdev_adjacent_dev_unlink_neighbour(struct net_device *dev,
 					   &upper_dev->adj_list.lower);
 }
 
-static void __netdev_addr_mask(unsigned char *mask, const unsigned char *addr,
-			       struct net_device *dev)
-{
-	int i;
-
-	for (i = 0; i < dev->addr_len; i++)
-		mask[i] |= addr[i] ^ dev->dev_addr[i];
-}
-
-static void __netdev_upper_mask(unsigned char *mask, struct net_device *dev,
-				struct net_device *lower)
-{
-	struct net_device *cur;
-	struct list_head *iter;
-
-	netdev_for_each_upper_dev_rcu(dev, cur, iter) {
-		__netdev_addr_mask(mask, cur->dev_addr, lower);
-		__netdev_upper_mask(mask, cur, lower);
-	}
-}
-
-static void __netdev_update_addr_mask(struct net_device *dev)
-{
-	unsigned char mask[MAX_ADDR_LEN];
-	struct net_device *cur;
-	struct list_head *iter;
-
-	memset(mask, 0, sizeof(mask));
-	__netdev_upper_mask(mask, dev, dev);
-	memcpy(dev->local_addr_mask, mask, dev->addr_len);
-
-	netdev_for_each_lower_dev(dev, cur, iter)
-		__netdev_update_addr_mask(cur);
-}
-
-static void netdev_update_addr_mask(struct net_device *dev)
-{
-	rcu_read_lock();
-	__netdev_update_addr_mask(dev);
-	rcu_read_unlock();
-}
-
 static int __netdev_upper_dev_link(struct net_device *dev,
 				   struct net_device *upper_dev, bool master,
 				   void *upper_priv, void *upper_info,
@@ -7725,7 +7657,6 @@ static int __netdev_upper_dev_link(struct net_device *dev,
 	if (ret)
 		return ret;
 
-	netdev_update_addr_mask(dev);
 	ret = call_netdevice_notifiers_info(NETDEV_CHANGEUPPER,
 					    &changeupper_info.info);
 	ret = notifier_to_errno(ret);
@@ -7822,7 +7753,6 @@ static void __netdev_upper_dev_unlink(struct net_device *dev,
 
 	__netdev_adjacent_dev_unlink_neighbour(dev, upper_dev);
 
-	netdev_update_addr_mask(dev);
 	call_netdevice_notifiers_info(NETDEV_CHANGEUPPER,
 				      &changeupper_info.info);
 
@@ -8875,7 +8805,6 @@ int dev_set_mac_address(struct net_device *dev, struct sockaddr *sa,
 	if (err)
 		return err;
 	dev->addr_assign_type = NET_ADDR_SET;
-	netdev_update_addr_mask(dev);
 	call_netdevice_notifiers(NETDEV_CHANGEADDR, dev);
 	add_device_randomness(dev->dev_addr, dev->addr_len);
 	return 0;
@@ -10602,22 +10531,6 @@ void netdev_set_default_ethtool_ops(struct net_device *dev,
 		dev->ethtool_ops = ops;
 }
 EXPORT_SYMBOL_GPL(netdev_set_default_ethtool_ops);
-
-/**
- * netdev_sw_irq_coalesce_default_on() - enable SW IRQ coalescing by default
- * @dev: netdev to enable the IRQ coalescing on
- *
- * Sets a conservative default for SW IRQ coalescing. Users can use
- * sysfs attributes to override the default values.
- */
-void netdev_sw_irq_coalesce_default_on(struct net_device *dev)
-{
-	WARN_ON(dev->reg_state == NETREG_REGISTERED);
-
-	dev->gro_flush_timeout = 20000;
-	dev->napi_defer_hard_irqs = 1;
-}
-EXPORT_SYMBOL_GPL(netdev_sw_irq_coalesce_default_on);
 
 void netdev_freemem(struct net_device *dev)
 {
