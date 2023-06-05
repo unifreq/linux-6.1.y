@@ -11,7 +11,7 @@ mt7915_init_tx_queues(struct mt7915_phy *phy, int idx, int n_desc, int ring_base
 	struct mt7915_dev *dev = phy->dev;
 
 	if (mtk_wed_device_active(&phy->dev->mt76.mmio.wed)) {
-		if (is_mt7986(&dev->mt76))
+		if (is_mt798x(&dev->mt76))
 			ring_base += MT_TXQ_ID(0) * MT_RING_SIZE;
 		else
 			ring_base = MT_WED_TX_RING_BASE;
@@ -87,8 +87,14 @@ static void mt7915_dma_config(struct mt7915_dev *dev)
 				   MT7916_RXQ_BAND0);
 			RXQ_CONFIG(MT_RXQ_MCU_WA, WFDMA0, MT_INT_WED_RX_DONE_WA_MT7916,
 				   MT7916_RXQ_MCU_WA);
-			RXQ_CONFIG(MT_RXQ_BAND1, WFDMA0, MT_INT_WED_RX_DONE_BAND1_MT7916,
-				   MT7916_RXQ_BAND1);
+			if (dev->hif2)
+				RXQ_CONFIG(MT_RXQ_BAND1, WFDMA0,
+					   MT_INT_RX_DONE_BAND1_MT7916,
+					   MT7916_RXQ_BAND1);
+			else
+				RXQ_CONFIG(MT_RXQ_BAND1, WFDMA0,
+					   MT_INT_WED_RX_DONE_BAND1_MT7916,
+					   MT7916_RXQ_BAND1);
 			RXQ_CONFIG(MT_RXQ_MAIN_WA, WFDMA0, MT_INT_WED_RX_DONE_WA_MAIN_MT7916,
 				   MT7916_RXQ_MCU_WA_MAIN);
 			TXQ_CONFIG(0, WFDMA0, MT_INT_WED_TX_DONE_BAND0,
@@ -364,7 +370,7 @@ static int mt7915_dma_enable(struct mt7915_dev *dev)
 		int ret;
 
 		wed_irq_mask |= MT_INT_TX_DONE_BAND0 | MT_INT_TX_DONE_BAND1;
-		if (!is_mt7986(&dev->mt76))
+		if (!is_mt798x(&dev->mt76))
 			mt76_wr(dev, MT_INT_WED_MASK_CSR, wed_irq_mask);
 		else
 			mt76_wr(dev, MT_INT_MASK_CSR, wed_irq_mask);
@@ -398,7 +404,7 @@ int mt7915_dma_init(struct mt7915_dev *dev, struct mt7915_phy *phy2)
 	mt7915_dma_disable(dev, true);
 
 	if (mtk_wed_device_active(&mdev->mmio.wed)) {
-		if (!is_mt7986(mdev)) {
+		if (!is_mt798x(mdev)) {
 			u8 wed_control_rx1 = is_mt7915(mdev) ? 1 : 2;
 
 			mt76_set(dev, MT_WFDMA_HOST_CONFIG,
@@ -559,9 +565,32 @@ int mt7915_dma_init(struct mt7915_dev *dev, struct mt7915_phy *phy2)
 	return 0;
 }
 
+static void mt7915_dma_wed_reset(struct mt7915_dev *dev)
+{
+	struct mt76_dev *mdev = &dev->mt76;
+
+	if (!test_bit(MT76_STATE_WED_RESET, &dev->mphy.state))
+		return;
+
+	complete(&mdev->mmio.wed_reset);
+
+	if (!wait_for_completion_timeout(&dev->mt76.mmio.wed_reset_complete,
+					 3 * HZ))
+		dev_err(dev->mt76.dev, "wed reset complete timeout\n");
+}
+
+static void
+mt7915_dma_reset_tx_queue(struct mt7915_dev *dev, struct mt76_queue *q)
+{
+	mt76_queue_reset(dev, q);
+	if (mtk_wed_device_active(&dev->mt76.mmio.wed))
+		mt76_dma_wed_setup(&dev->mt76, q, true);
+}
+
 int mt7915_dma_reset(struct mt7915_dev *dev, bool force)
 {
 	struct mt76_phy *mphy_ext = dev->mt76.phys[MT_BAND1];
+	struct mtk_wed_device *wed = &dev->mt76.mmio.wed;
 	int i;
 
 	/* clean up hw queues */
@@ -581,27 +610,39 @@ int mt7915_dma_reset(struct mt7915_dev *dev, bool force)
 	if (force)
 		mt7915_wfsys_reset(dev);
 
+	if (mtk_wed_device_active(wed))
+		mtk_wed_device_dma_reset(wed);
+
 	mt7915_dma_disable(dev, force);
+	mt7915_dma_wed_reset(dev);
 
 	/* reset hw queues */
 	for (i = 0; i < __MT_TXQ_MAX; i++) {
-		mt76_queue_reset(dev, dev->mphy.q_tx[i]);
+		mt7915_dma_reset_tx_queue(dev, dev->mphy.q_tx[i]);
 		if (mphy_ext)
-			mt76_queue_reset(dev, mphy_ext->q_tx[i]);
+			mt7915_dma_reset_tx_queue(dev, mphy_ext->q_tx[i]);
 	}
 
 	for (i = 0; i < __MT_MCUQ_MAX; i++)
 		mt76_queue_reset(dev, dev->mt76.q_mcu[i]);
 
-	mt76_for_each_q_rx(&dev->mt76, i)
+	mt76_for_each_q_rx(&dev->mt76, i) {
+		if (dev->mt76.q_rx[i].flags == MT_WED_Q_TXFREE)
+			continue;
+
 		mt76_queue_reset(dev, &dev->mt76.q_rx[i]);
+	}
 
 	mt76_tx_status_check(&dev->mt76, true);
 
-	mt7915_dma_enable(dev);
-
 	mt76_for_each_q_rx(&dev->mt76, i)
 		mt76_queue_rx_reset(dev, i);
+
+	if (mtk_wed_device_active(wed) && is_mt7915(&dev->mt76))
+		mt76_rmw(dev, MT_WFDMA0_EXT0_CFG, MT_WFDMA0_EXT0_RXWB_KEEP,
+			 MT_WFDMA0_EXT0_RXWB_KEEP);
+
+	mt7915_dma_enable(dev);
 
 	return 0;
 }

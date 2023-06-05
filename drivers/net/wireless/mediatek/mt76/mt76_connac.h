@@ -6,6 +6,20 @@
 
 #include "mt76.h"
 
+enum rx_pkt_type {
+	PKT_TYPE_TXS,
+	PKT_TYPE_TXRXV,
+	PKT_TYPE_NORMAL,
+	PKT_TYPE_RX_DUP_RFB,
+	PKT_TYPE_RX_TMR,
+	PKT_TYPE_RETRIEVE,
+	PKT_TYPE_TXRX_NOTIFY,
+	PKT_TYPE_RX_EVENT,
+	PKT_TYPE_NORMAL_MCU,
+	PKT_TYPE_RX_FW_MONITOR	= 0x0c,
+	PKT_TYPE_TXRX_NOTIFY_V0	= 0x18,
+};
+
 #define MT76_CONNAC_SCAN_IE_LEN			600
 #define MT76_CONNAC_MAX_NUM_SCHED_SCAN_INTERVAL	 10
 #define MT76_CONNAC_MAX_TIME_SCHED_SCAN_INTERVAL U16_MAX
@@ -42,6 +56,7 @@ enum {
 	CMD_CBW_10MHZ,
 	CMD_CBW_5MHZ,
 	CMD_CBW_8080MHZ,
+	CMD_CBW_320MHZ,
 
 	CMD_HE_MCS_BW80 = 0,
 	CMD_HE_MCS_BW160,
@@ -182,9 +197,19 @@ static inline bool is_mt7916(struct mt76_dev *dev)
 	return mt76_chip(dev) == 0x7906;
 }
 
+static inline bool is_mt7981(struct mt76_dev *dev)
+{
+	return mt76_chip(dev) == 0x7981;
+}
+
 static inline bool is_mt7986(struct mt76_dev *dev)
 {
 	return mt76_chip(dev) == 0x7986;
+}
+
+static inline bool is_mt798x(struct mt76_dev *dev)
+{
+	return is_mt7981(dev) || is_mt7986(dev);
 }
 
 static inline bool is_mt7996(struct mt76_dev *dev)
@@ -239,6 +264,7 @@ static inline u8 mt76_connac_chan_bw(struct cfg80211_chan_def *chandef)
 		[NL80211_CHAN_WIDTH_10] = CMD_CBW_10MHZ,
 		[NL80211_CHAN_WIDTH_20] = CMD_CBW_20MHZ,
 		[NL80211_CHAN_WIDTH_20_NOHT] = CMD_CBW_20MHZ,
+		[NL80211_CHAN_WIDTH_320] = CMD_CBW_320MHZ,
 	};
 
 	if (chandef->width >= ARRAY_SIZE(width_to_bw))
@@ -275,6 +301,12 @@ static inline u8 mt76_connac_spe_idx(u8 antenna_mask)
 		return 0;
 
 	return ant_to_spe[antenna_mask];
+}
+
+static inline void mt76_connac_irq_enable(struct mt76_dev *dev, u32 mask)
+{
+	mt76_set_irq_mask(dev, 0, 0, mask);
+	tasklet_schedule(&dev->irq_tasklet);
 }
 
 int mt76_connac_pm_wake(struct mt76_phy *phy, struct mt76_connac_pm *pm);
@@ -351,6 +383,7 @@ mt76_connac_mutex_release(struct mt76_dev *dev, struct mt76_connac_pm *pm)
 	mutex_unlock(&dev->mutex);
 }
 
+void mt76_connac_gen_ppe_thresh(u8 *he_ppet, int nss);
 int mt76_connac_init_tx_queues(struct mt76_phy *phy, int idx, int n_desc,
 			       int ring_base, u32 flags);
 void mt76_connac_write_hw_txp(struct mt76_dev *dev,
@@ -370,6 +403,9 @@ void mt76_connac2_mac_write_txwi(struct mt76_dev *dev, __le32 *txwi,
 				 struct sk_buff *skb, struct mt76_wcid *wcid,
 				 struct ieee80211_key_conf *key, int pid,
 				 enum mt76_txq_id qid, u32 changed);
+u16 mt76_connac2_mac_tx_rate_val(struct mt76_phy *mphy,
+				 struct ieee80211_vif *vif,
+				 bool beacon, bool mcast);
 bool mt76_connac2_mac_fill_txs(struct mt76_dev *dev, struct mt76_wcid *wcid,
 			       __le32 *txs_data);
 bool mt76_connac2_mac_add_txs_skb(struct mt76_dev *dev, struct mt76_wcid *wcid,

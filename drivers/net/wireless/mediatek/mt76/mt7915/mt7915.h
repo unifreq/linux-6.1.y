@@ -34,6 +34,10 @@
 #define MT7916_FIRMWARE_WM		"mediatek/mt7916_wm.bin"
 #define MT7916_ROM_PATCH		"mediatek/mt7916_rom_patch.bin"
 
+#define MT7981_FIRMWARE_WA		"mediatek/mt7981_wa.bin"
+#define MT7981_FIRMWARE_WM		"mediatek/mt7981_wm.bin"
+#define MT7981_ROM_PATCH		"mediatek/mt7981_rom_patch.bin"
+
 #define MT7986_FIRMWARE_WA		"mediatek/mt7986_wa.bin"
 #define MT7986_FIRMWARE_WM		"mediatek/mt7986_wm.bin"
 #define MT7986_FIRMWARE_WM_MT7975	"mediatek/mt7986_wm_mt7975.bin"
@@ -43,6 +47,9 @@
 #define MT7915_EEPROM_DEFAULT		"mediatek/mt7915_eeprom.bin"
 #define MT7915_EEPROM_DEFAULT_DBDC	"mediatek/mt7915_eeprom_dbdc.bin"
 #define MT7916_EEPROM_DEFAULT		"mediatek/mt7916_eeprom.bin"
+
+#define MT7981_EEPROM_MT7976_DEFAULT_DBDC	"mediatek/mt7981_eeprom_mt7976_dbdc.bin"
+
 #define MT7986_EEPROM_MT7975_DEFAULT		"mediatek/mt7986_eeprom_mt7975.bin"
 #define MT7986_EEPROM_MT7975_DUAL_DEFAULT	"mediatek/mt7986_eeprom_mt7975_dual.bin"
 #define MT7986_EEPROM_MT7976_DEFAULT		"mediatek/mt7986_eeprom_mt7976.bin"
@@ -53,6 +60,7 @@
 #define MT7916_EEPROM_SIZE		4096
 
 #define MT7915_EEPROM_BLOCK_SIZE	16
+#define MT7915_HW_TOKEN_SIZE		4096
 #define MT7915_TOKEN_SIZE		8192
 
 #define MT7915_CFEND_RATE_DEFAULT	0x49	/* OFDM 24M */
@@ -146,23 +154,9 @@ struct mt7915_sta {
 	} twt;
 };
 
-struct mt7915_vif_cap {
-	bool ht_ldpc:1;
-	bool vht_ldpc:1;
-	bool he_ldpc:1;
-	bool vht_su_ebfer:1;
-	bool vht_su_ebfee:1;
-	bool vht_mu_ebfer:1;
-	bool vht_mu_ebfee:1;
-	bool he_su_ebfer:1;
-	bool he_su_ebfee:1;
-	bool he_mu_ebfer:1;
-};
-
 struct mt7915_vif {
 	struct mt76_vif mt76; /* must be first */
 
-	struct mt7915_vif_cap cap;
 	struct mt7915_sta sta;
 	struct mt7915_phy *phy;
 
@@ -307,7 +301,6 @@ struct mt7915_dev {
 	u32 wfdma_mask;
 
 	const struct mt76_bus_ops *bus_ops;
-	struct tasklet_struct irq_tasklet;
 	struct mt7915_phy phy;
 
 	/* monitor rx chain configured channel */
@@ -434,8 +427,7 @@ mt7915_ext_phy(struct mt7915_dev *dev)
 static inline u32 mt7915_check_adie(struct mt7915_dev *dev, bool sku)
 {
 	u32 mask = sku ? MT_CONNINFRA_SKU_MASK : MT_ADIE_TYPE_MASK;
-
-	if (!is_mt7986(&dev->mt76))
+	if (!is_mt798x(&dev->mt76))
 		return 0;
 
 	return mt76_rr(dev, MT_CONNINFRA_SKU_DEC_ADDR) & mask;
@@ -447,7 +439,7 @@ extern struct pci_driver mt7915_pci_driver;
 extern struct pci_driver mt7915_hif_driver;
 extern struct platform_driver mt7986_wmac_driver;
 
-#ifdef CONFIG_MT7986_WMAC
+#ifdef CONFIG_MT798X_WMAC
 int mt7986_wmac_enable(struct mt7915_dev *dev);
 void mt7986_wmac_disable(struct mt7915_dev *dev);
 #else
@@ -580,7 +572,7 @@ static inline void mt7915_irq_enable(struct mt7915_dev *dev, u32 mask)
 	else
 		mt76_set_irq_mask(&dev->mt76, 0, 0, mask);
 
-	tasklet_schedule(&dev->irq_tasklet);
+	tasklet_schedule(&dev->mt76.irq_tasklet);
 }
 
 static inline void mt7915_irq_disable(struct mt7915_dev *dev, u32 mask)
@@ -630,7 +622,6 @@ void mt7915_tx_token_put(struct mt7915_dev *dev);
 void mt7915_queue_rx_skb(struct mt76_dev *mdev, enum mt76_rxq_id q,
 			 struct sk_buff *skb, u32 *info);
 bool mt7915_rx_check(struct mt76_dev *mdev, void *data, int len);
-void mt7915_sta_ps(struct mt76_dev *mdev, struct ieee80211_sta *sta, bool ps);
 void mt7915_stats_work(struct work_struct *work);
 int mt76_dfs_start_rdd(struct mt7915_dev *dev, bool force);
 int mt7915_dfs_init_radar_detector(struct mt7915_phy *phy);

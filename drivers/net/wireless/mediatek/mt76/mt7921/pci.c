@@ -8,7 +8,7 @@
 #include <linux/pci.h>
 
 #include "mt7921.h"
-#include "mac.h"
+#include "../mt76_connac2_mac.h"
 #include "mcu.h"
 #include "../trace.h"
 
@@ -31,14 +31,12 @@ MODULE_PARM_DESC(disable_aspm, "disable PCI ASPM support");
 static void
 mt7921_rx_poll_complete(struct mt76_dev *mdev, enum mt76_rxq_id q)
 {
-	struct mt7921_dev *dev = container_of(mdev, struct mt7921_dev, mt76);
-
 	if (q == MT_RXQ_MAIN)
-		mt7921_irq_enable(dev, MT_INT_RX_DONE_DATA);
+		mt76_connac_irq_enable(mdev, MT_INT_RX_DONE_DATA);
 	else if (q == MT_RXQ_MCU_WA)
-		mt7921_irq_enable(dev, MT_INT_RX_DONE_WM2);
+		mt76_connac_irq_enable(mdev, MT_INT_RX_DONE_WM2);
 	else
-		mt7921_irq_enable(dev, MT_INT_RX_DONE_WM);
+		mt76_connac_irq_enable(mdev, MT_INT_RX_DONE_WM);
 }
 
 static irqreturn_t mt7921_irq_handler(int irq, void *dev_instance)
@@ -50,7 +48,7 @@ static irqreturn_t mt7921_irq_handler(int irq, void *dev_instance)
 	if (!test_bit(MT76_STATE_INITIALIZED, &dev->mphy.state))
 		return IRQ_NONE;
 
-	tasklet_schedule(&dev->irq_tasklet);
+	tasklet_schedule(&dev->mt76.irq_tasklet);
 
 	return IRQ_HANDLED;
 }
@@ -123,7 +121,7 @@ static void mt7921e_unregister_device(struct mt7921_dev *dev)
 	mt7921_wfsys_reset(dev);
 	skb_queue_purge(&dev->mt76.mcu.res_q);
 
-	tasklet_disable(&dev->irq_tasklet);
+	tasklet_disable(&dev->mt76.irq_tasklet);
 }
 
 static u32 __mt7921_reg_addr(struct mt7921_dev *dev, u32 addr)
@@ -244,7 +242,6 @@ static int mt7921_pci_probe(struct pci_dev *pdev,
 		.rx_check = mt7921_rx_check,
 		.rx_skb = mt7921_queue_rx_skb,
 		.rx_poll_complete = mt7921_rx_poll_complete,
-		.sta_ps = mt7921_sta_ps,
 		.sta_add = mt7921_mac_sta_add,
 		.sta_assoc = mt7921_mac_sta_assoc,
 		.sta_remove = mt7921_mac_sta_remove,
@@ -257,7 +254,6 @@ static int mt7921_pci_probe(struct pci_dev *pdev,
 		.drv_own = mt7921e_mcu_drv_pmctrl,
 		.fw_own = mt7921e_mcu_fw_pmctrl,
 	};
-
 	struct ieee80211_ops *ops;
 	struct mt76_bus_ops *bus_ops;
 	struct mt7921_dev *dev;
@@ -292,25 +288,11 @@ static int mt7921_pci_probe(struct pci_dev *pdev,
 	if (mt7921_disable_aspm)
 		mt76_pci_disable_aspm(pdev);
 
-	features = mt7921_check_offload_capability(&pdev->dev, (const char *)
-						   id->driver_data);
-	ops = devm_kmemdup(&pdev->dev, &mt7921_ops, sizeof(mt7921_ops),
-			   GFP_KERNEL);
+	ops = mt7921_get_mac80211_ops(&pdev->dev, (void *)id->driver_data,
+				      &features);
 	if (!ops) {
 		ret = -ENOMEM;
 		goto err_free_pci_vec;
-	}
-
-	if (!(features & MT7921_FW_CAP_CNM)) {
-		ops->remain_on_channel = NULL;
-		ops->cancel_remain_on_channel = NULL;
-		ops->add_chanctx = NULL;
-		ops->remove_chanctx = NULL;
-		ops->change_chanctx = NULL;
-		ops->assign_vif_chanctx = NULL;
-		ops->unassign_vif_chanctx = NULL;
-		ops->mgd_prepare_tx = NULL;
-		ops->mgd_complete_tx = NULL;
 	}
 
 	mdev = mt76_alloc_device(&pdev->dev, sizeof(*dev), ops, &drv_ops);
@@ -325,7 +307,7 @@ static int mt7921_pci_probe(struct pci_dev *pdev,
 	dev->fw_features = features;
 	dev->hif_ops = &mt7921_pcie_ops;
 	mt76_mmio_init(&dev->mt76, pcim_iomap_table(pdev)[0]);
-	tasklet_init(&dev->irq_tasklet, mt7921_irq_tasklet, (unsigned long)dev);
+	tasklet_init(&mdev->irq_tasklet, mt7921_irq_tasklet, (unsigned long)dev);
 
 	dev->phy.dev = dev;
 	dev->phy.mt76 = &dev->mt76.phy;
@@ -391,9 +373,9 @@ static void mt7921_pci_remove(struct pci_dev *pdev)
 	pci_free_irq_vectors(pdev);
 }
 
-#ifdef CONFIG_PM
-static int mt7921_pci_suspend(struct pci_dev *pdev, pm_message_t state)
+static int mt7921_pci_suspend(struct device *device)
 {
+	struct pci_dev *pdev = to_pci_dev(device);
 	struct mt76_dev *mdev = pci_get_drvdata(pdev);
 	struct mt7921_dev *dev = container_of(mdev, struct mt7921_dev, mt76);
 	struct mt76_connac_pm *pm = &dev->pm;
@@ -424,8 +406,6 @@ static int mt7921_pci_suspend(struct pci_dev *pdev, pm_message_t state)
 		napi_disable(&mdev->napi[i]);
 	}
 
-	pci_enable_wake(pdev, pci_choose_state(pdev, state), true);
-
 	/* wait until dma is idle  */
 	mt76_poll(dev, MT_WFDMA0_GLO_CFG,
 		  MT_WFDMA0_GLO_CFG_TX_DMA_BUSY |
@@ -439,14 +419,9 @@ static int mt7921_pci_suspend(struct pci_dev *pdev, pm_message_t state)
 	mt76_wr(dev, MT_WFDMA0_HOST_INT_ENA, 0);
 	mt76_wr(dev, MT_PCIE_MAC_INT_ENABLE, 0x0);
 	synchronize_irq(pdev->irq);
-	tasklet_kill(&dev->irq_tasklet);
+	tasklet_kill(&mdev->irq_tasklet);
 
 	err = mt7921_mcu_fw_pmctrl(dev);
-	if (err)
-		goto restore_napi;
-
-	pci_save_state(pdev);
-	err = pci_set_power_state(pdev, pci_choose_state(pdev, state));
 	if (err)
 		goto restore_napi;
 
@@ -472,18 +447,13 @@ restore_suspend:
 	return err;
 }
 
-static int mt7921_pci_resume(struct pci_dev *pdev)
+static int mt7921_pci_resume(struct device *device)
 {
+	struct pci_dev *pdev = to_pci_dev(device);
 	struct mt76_dev *mdev = pci_get_drvdata(pdev);
 	struct mt7921_dev *dev = container_of(mdev, struct mt7921_dev, mt76);
 	struct mt76_connac_pm *pm = &dev->pm;
 	int i, err;
-
-	err = pci_set_power_state(pdev, PCI_D0);
-	if (err)
-		return err;
-
-	pci_restore_state(pdev);
 
 	err = mt7921_mcu_drv_pmctrl(dev);
 	if (err < 0)
@@ -493,8 +463,9 @@ static int mt7921_pci_resume(struct pci_dev *pdev)
 
 	/* enable interrupt */
 	mt76_wr(dev, MT_PCIE_MAC_INT_ENABLE, 0xff);
-	mt7921_irq_enable(dev, MT_INT_RX_DONE_ALL | MT_INT_TX_DONE_ALL |
-			  MT_INT_MCU_CMD);
+	mt76_connac_irq_enable(&dev->mt76,
+			       MT_INT_RX_DONE_ALL | MT_INT_TX_DONE_ALL |
+			       MT_INT_MCU_CMD);
 	mt76_set(dev, MT_MCU2HOST_SW_INT_ENA, MT_MCU_CMD_WAKE_RX_PCIE);
 
 	/* put dma enabled */
@@ -525,17 +496,21 @@ failed:
 
 	return err;
 }
-#endif /* CONFIG_PM */
+
+static void mt7921_pci_shutdown(struct pci_dev *pdev)
+{
+	mt7921_pci_remove(pdev);
+}
+
+static DEFINE_SIMPLE_DEV_PM_OPS(mt7921_pm_ops, mt7921_pci_suspend, mt7921_pci_resume);
 
 static struct pci_driver mt7921_pci_driver = {
 	.name		= KBUILD_MODNAME,
 	.id_table	= mt7921_pci_device_table,
 	.probe		= mt7921_pci_probe,
 	.remove		= mt7921_pci_remove,
-#ifdef CONFIG_PM
-	.suspend	= mt7921_pci_suspend,
-	.resume		= mt7921_pci_resume,
-#endif /* CONFIG_PM */
+	.shutdown	= mt7921_pci_shutdown,
+	.driver.pm	= pm_sleep_ptr(&mt7921_pm_ops),
 };
 
 module_pci_driver(mt7921_pci_driver);
