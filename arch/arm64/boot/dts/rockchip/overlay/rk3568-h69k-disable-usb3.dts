@@ -1,0 +1,11 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target = <&usb_host1_xhci>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+};

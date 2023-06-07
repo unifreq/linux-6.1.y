@@ -33,13 +33,7 @@
 		regulator-max-microvolt = <3800000>;
 		regulator-name = "vcc3v8_lte_modem";
 		regulator-boot-on;
-
-		enable-active-high;
-		gpio = <&gpio0 RK_PA5 GPIO_ACTIVE_HIGH>;
-
-		pinctrl-names = "default";
-		pinctrl-0 = <&lte_modem_pwr_en>;
-		vin-supply = <&vcc5v0_sys>;
+		vin-supply = <&vcc5v0_usb_otg>;
 	};
 
 	rfkill_switchs {
