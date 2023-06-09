@@ -243,7 +243,7 @@
 		     &gmac0_rgmii_bus>;
 	snps,reset-gpio = <&gpio2 RK_PD3 GPIO_ACTIVE_LOW>;
 	snps,reset-active-low;
-	snps,reset-delays-us = <0 20000 100000>;
+	snps,reset-delays-us = <0 50000 200000>;
 	tx_delay = <0x3c>;
 	rx_delay = <0x2f>;
 	phy-handle = <&rgmii_phy0>;
@@ -264,9 +264,9 @@
 		     &gmac1m1_rgmii_bus>;
 	snps,reset-gpio = <&gpio1 RK_PB0 GPIO_ACTIVE_LOW>;
 	snps,reset-active-low;
-	snps,reset-delays-us = <0 20000 100000>;
-	tx_delay = <0x4f>;
-	rx_delay = <0x26>;
+	snps,reset-delays-us = <0 50000 200000>;
+	tx_delay = <0x3c>;
+	rx_delay = <0x2f>;
 	phy-handle = <&rgmii_phy1>;
 	status = "okay";
 };
