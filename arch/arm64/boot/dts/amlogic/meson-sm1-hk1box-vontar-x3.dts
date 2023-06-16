@@ -82,6 +82,17 @@
 		vin-supply = <&ao_5v>;
 		regulator-always-on;
 	};
+	
+	leds {
+		compatible = "gpio-leds";
+		status = "okay";
+		sys_led {
+			label = "sys_led";
+			gpios = <&gpio_ao GPIOAO_11 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+			linux,default-trigger = "default-on";
+		};
+	};
 };
 
 &vddcpu {
