@@ -201,14 +201,17 @@
 	};
 };
 
+/* for sata0 & usb_host0_xhci */
 &combphy0 {
 	status = "okay";
 };
 
+/* for sata1 & usb_host1_xhci */
 &combphy1 {
 	status = "okay";
 };
 
+/* for sata2 & pcie2x1 */
 &combphy2 {
 	status = "okay";
 };
