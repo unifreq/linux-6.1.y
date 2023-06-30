@@ -17,5 +17,5 @@
 /* eMMC */
 &sd_emmc_c {
 	status = "okay";
-	max-frequency = <100000000>;
+	max-frequency = <52000000>;
 };
