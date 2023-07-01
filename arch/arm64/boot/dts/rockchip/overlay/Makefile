@@ -4,6 +4,8 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rk3568-h6xk-disable-pcie2x1.dtbo \
 	rk3568-h69k-disable-sata.dtbo \
 	rk3568-h69k-disable-usb3.dtbo \
+	rk3568-disable-gmac0.dtbo \
+	rk3568-disable-gmac1.dtbo \
 	rockchip-i2c7.dtbo \
 	rockchip-i2c8.dtbo \
 	rockchip-pcie-gen2.dtbo \
