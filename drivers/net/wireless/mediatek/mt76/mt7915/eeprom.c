@@ -153,13 +153,19 @@ static void mt7915_eeprom_parse_band_config(struct mt7915_phy *phy)
 	if (!is_mt7915(&dev->mt76)) {
 		switch (val) {
 		case MT_EE_V2_BAND_SEL_5GHZ:
-			phy->mt76->cap.has_5ghz = true;
-			return;
-		case MT_EE_V2_BAND_SEL_6GHZ:
-			phy->mt76->cap.has_6ghz = true;
-			return;
 		case MT_EE_V2_BAND_SEL_5GHZ_6GHZ:
 			phy->mt76->cap.has_5ghz = true;
+
+			if (val == MT_EE_V2_BAND_SEL_5GHZ_6GHZ) {
+				u8p_replace_bits(&eeprom[MT_EE_WIFI_CONF + band],
+						 MT_EE_V2_BAND_SEL_5GHZ,
+						 MT_EE_WIFI_CONF0_BAND_SEL);
+
+				/* force to buffer mode */
+				dev->flash_mode = true;
+			}
+			return;
+		case MT_EE_V2_BAND_SEL_6GHZ:
 			phy->mt76->cap.has_6ghz = true;
 			return;
 		default:
