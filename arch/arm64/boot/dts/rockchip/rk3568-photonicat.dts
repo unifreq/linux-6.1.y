@@ -14,8 +14,8 @@
 	aliases {
 		ethernet0 = &gmac0;
 		ethernet1 = &gmac1;
-		mmc0 = &sdhci;
-		mmc1 = &sdmmc0;
+		mmc0 = &sdmmc0;
+		mmc1 = &sdhci;
 		mmc2 = &sdmmc1;
 	};
 
@@ -294,6 +294,7 @@
 	power-domains = <&power RK3568_PD_PIPE>;
 	phys = <&combphy2 PHY_TYPE_SGMII>;
 	phy-handle = <&sgmii_phy>;
+	clock_in_out = "input";
 	phy-mode = "sgmii";
 	phy-supply = <&vcc_3v3>;
 	pinctrl-names = "default";
@@ -323,7 +324,7 @@
 		     &gmac1m1_rgmii_bus>;
 	snps,reset-gpio = <&gpio4 RK_PC0 GPIO_ACTIVE_LOW>;
 	snps,reset-active-low;
-	snps,reset-delays-us = <0 20000 100000>;
+	snps,reset-delays-us = <0 50000 200000>;
 	tx_delay = <0x38>;
 	rx_delay = <0x15>;
 	status = "okay";
