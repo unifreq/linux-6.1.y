@@ -1,0 +1,88 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2023 AI-Speaker.com. All rights reserved.
+ */
+
+/dts-v1/;
+
+#include "meson-sm1-ac2xx.dtsi"
+#include <dt-bindings/sound/meson-g12a-tohdmitx.h>
+
+/ {
+	compatible = "ai-speaker.com,dev3\0amlogic,sm1";
+	model = "AIS DEV3 / X88 Pro Pro X3 / X99 Max Plus / Transpeed X3 Plus";
+
+	fd655_dev {
+		dat_pin = <0x18 0x40 0x00>;
+		dev_name = "fd655_dev";
+		status = "okay";
+		clk_pin = <0x18 0x41 0x00>;
+		compatible = "amlogic,fd655_dev";
+	};
+
+	openvfd {
+		compatible = "open,vfd";
+		dev_name = "openvfd";
+		status = "okay";
+	};
+};
+
+
+&ethmac {
+	status = "okay";
+	pinctrl-0 = <&eth_pins>, <&eth_rgmii_pins>;
+	pinctrl-names = "default";
+	phy-handle = <&external_phy>;
+	phy-mode = "rgmii";
+	amlogic,tx-delay-ns = <2>;
+	snps,aal;
+	snps,rxpbl = <0x8>;
+	snps,txpbl = <0x8>;
+	rx-fifo-depth = <4096>;
+	tx-fifo-depth = <4096>;
+	nvmem-cells = <&eth_mac>;
+	nvmem-cell-names = "eth_mac";
+};
+
+&ext_mdio {
+	external_phy: ethernet-phy@0 {
+		/* Realtek RTL8211F */
+		reg = <0>;
+		max-speed = <1000>;
+		reset-assert-us = <10000>;
+		reset-deassert-us = <80000>;
+        reset-gpios = <0x2a 0x0f 0x07>;
+		interrupt-parent = <0x01>;
+		interrupts = <26 IRQ_TYPE_LEVEL_LOW>;
+	};
+};
+
+&efuse {
+	eth_mac: eth_mac@0 {
+		reg = <0x0 0x06>;
+	};
+
+	bt_mac: bt_mac@6 {
+		reg = <0x6 0x06>;
+	};
+
+	wifi_mac: wifi_mac@12 {
+		reg = <0x0c 0x06>;
+	};
+
+	usid: usid@18 {
+		reg = <0x12 0x10>;
+	};
+};
+
+// set max cpu speed
+&cpu_opp_table {
+
+	opp-2016000000 {
+		status = "disabled";
+	};
+
+	opp-2100000000 {
+		status = "disabled";
+	};
+};
