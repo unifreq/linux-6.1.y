@@ -120,6 +120,7 @@ dtb-$(CONFIG_ARCH_MESON) += meson-sm1-tx3-qz.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-sm1-tx3-qz-oc.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-sm1-ugoos-x3.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-sm1-ugoos-x3-oc.dtb
+dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x88-pro-x3.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x96-air.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x96-air-gbit.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x96-max-plus-100m.dtb
