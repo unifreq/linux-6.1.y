@@ -4,11 +4,11 @@
 
 /dts-v1/;
 
-#include "rk3568-opc-h68k.dts"
+#include "rk3568-hlink-h68k.dts"
 
 / {
-	model = "HINLINK OPC-H69K Board";
-	compatible = "hinlink,opc-h69k", "rockchip,rk3568";
+	model = "Hlink H69K";
+	compatible = "hlink,h69k", "rockchip,rk3568";
 
 	/* m.2 sata power */
 	vcc5v0_sata: vcc5v0-sata {

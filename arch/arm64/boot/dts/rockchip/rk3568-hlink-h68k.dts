@@ -11,8 +11,8 @@
 #include "rk3568.dtsi"
 
 / {
-	model = "HINLINK OPC-H68K Board";
-	compatible = "hinlink,opc-h68k", "rockchip,rk3568";
+	model = "Hlink H68K";
+	compatible = "hlink,h68k", "rockchip,rk3568";
 
 	aliases {
 		ethernet0 = &gmac0;

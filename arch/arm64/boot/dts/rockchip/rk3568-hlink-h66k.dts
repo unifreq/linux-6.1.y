@@ -4,11 +4,11 @@
 
 /dts-v1/;
 
-#include "rk3568-opc-h68k.dts"
+#include "rk3568-hlink-h68k.dts"
 
 / {
-	model = "HINLINK OPC-H66K Board";
-	compatible = "hinlink,opc-h66k", "rockchip,rk3568";
+	model = "Hlink H66K";
+	compatible = "hlink,h66k", "rockchip,rk3568";
 };
 
 &gmac0 {
