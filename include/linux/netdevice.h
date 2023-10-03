@@ -149,8 +149,8 @@ static inline bool dev_xmit_complete(int rc)
 
 #if defined(CONFIG_HYPERV_NET)
 # define LL_MAX_HEADER 128
-#elif defined(CONFIG_WLAN) || IS_ENABLED(CONFIG_AX25) || 1
-# if defined(CONFIG_MAC80211_MESH) || 1
+#elif defined(CONFIG_WLAN) || IS_ENABLED(CONFIG_AX25)
+# if defined(CONFIG_MAC80211_MESH)
 #  define LL_MAX_HEADER 128
 # else
 #  define LL_MAX_HEADER 96
@@ -520,7 +520,6 @@ static inline bool napi_complete(struct napi_struct *n)
 }
 
 int dev_set_threaded(struct net_device *dev, bool threaded);
-int backlog_set_threaded(bool threaded);
 
 /**
  *	napi_disable - prevent NAPI from scheduling
@@ -2136,8 +2135,6 @@ struct net_device {
 	struct netdev_hw_addr_list	mc;
 	struct netdev_hw_addr_list	dev_addrs;
 
-	unsigned char		local_addr_mask[MAX_ADDR_LEN];
-
 #ifdef CONFIG_SYSFS
 	struct kset		*queues_kset;
 #endif
@@ -2171,7 +2168,7 @@ struct net_device {
 #if IS_ENABLED(CONFIG_AX25)
 	void			*ax25_ptr;
 #endif
-#if IS_ENABLED(CONFIG_CFG80211_HEADERS)
+#if IS_ENABLED(CONFIG_CFG80211)
 	struct wireless_dev	*ieee80211_ptr;
 #endif
 #if IS_ENABLED(CONFIG_IEEE802154) || IS_ENABLED(CONFIG_6LOWPAN)
@@ -3131,7 +3128,6 @@ struct softnet_data {
 	unsigned int		processed;
 	unsigned int		time_squeeze;
 	unsigned int		received_rps;
-	unsigned int		process_queue_empty;
 #ifdef CONFIG_RPS
 	struct softnet_data	*rps_ipi_list;
 #endif

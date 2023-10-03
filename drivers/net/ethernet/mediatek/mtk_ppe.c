@@ -8,7 +8,6 @@
 #include <linux/platform_device.h>
 #include <linux/if_ether.h>
 #include <linux/if_vlan.h>
-#include <net/dst_metadata.h>
 #include <net/dsa.h>
 #include "mtk_eth_soc.h"
 #include "mtk_ppe.h"
@@ -176,8 +175,6 @@ int mtk_foe_entry_prepare(struct mtk_eth *eth, struct mtk_foe_entry *entry,
 		val = FIELD_PREP(MTK_FOE_IB2_DEST_PORT_V2, pse_port) |
 		      FIELD_PREP(MTK_FOE_IB2_PORT_AG_V2, 0xf);
 	} else {
-		int port_mg = eth->soc->offload_version > 1 ? 0 : 0x3f;
-
 		val = FIELD_PREP(MTK_FOE_IB1_STATE, MTK_FOE_STATE_BIND) |
 		      FIELD_PREP(MTK_FOE_IB1_PACKET_TYPE, type) |
 		      FIELD_PREP(MTK_FOE_IB1_UDP, l4proto == IPPROTO_UDP) |
@@ -185,7 +182,7 @@ int mtk_foe_entry_prepare(struct mtk_eth *eth, struct mtk_foe_entry *entry,
 		entry->ib1 = val;
 
 		val = FIELD_PREP(MTK_FOE_IB2_DEST_PORT, pse_port) |
-		      FIELD_PREP(MTK_FOE_IB2_PORT_MG, port_mg) |
+		      FIELD_PREP(MTK_FOE_IB2_PORT_MG, 0x3f) |
 		      FIELD_PREP(MTK_FOE_IB2_PORT_AG, 0x1f);
 	}
 
@@ -400,61 +397,42 @@ int mtk_foe_entry_set_wdma(struct mtk_eth *eth, struct mtk_foe_entry *entry,
 	return 0;
 }
 
-int mtk_foe_entry_set_queue(struct mtk_eth *eth, struct mtk_foe_entry *entry,
-			    unsigned int queue)
-{
-	u32 *ib2 = mtk_foe_entry_ib2(eth, entry);
-
-	if (MTK_HAS_CAPS(eth->soc->caps, MTK_NETSYS_V2)) {
-		*ib2 &= ~MTK_FOE_IB2_QID_V2;
-		*ib2 |= FIELD_PREP(MTK_FOE_IB2_QID_V2, queue);
-		*ib2 |= MTK_FOE_IB2_PSE_QOS_V2;
-	} else {
-		*ib2 &= ~MTK_FOE_IB2_QID;
-		*ib2 |= FIELD_PREP(MTK_FOE_IB2_QID, queue);
-		*ib2 |= MTK_FOE_IB2_PSE_QOS;
-	}
-
-	return 0;
-}
-
-static int
-mtk_flow_entry_match_len(struct mtk_eth *eth, struct mtk_foe_entry *entry)
-{
-	int type = mtk_get_ib1_pkt_type(eth, entry->ib1);
-
-	if (type > MTK_PPE_PKT_TYPE_IPV4_DSLITE)
-		return offsetof(struct mtk_foe_entry, ipv6._rsv);
-	else
-		return offsetof(struct mtk_foe_entry, ipv4.ib2);
-}
-
 static bool
 mtk_flow_entry_match(struct mtk_eth *eth, struct mtk_flow_entry *entry,
-		     struct mtk_foe_entry *data, int len)
+		     struct mtk_foe_entry *data)
 {
+	int type, len;
+
 	if ((data->ib1 ^ entry->data.ib1) & MTK_FOE_IB1_UDP)
 		return false;
+
+	type = mtk_get_ib1_pkt_type(eth, entry->data.ib1);
+	if (type > MTK_PPE_PKT_TYPE_IPV4_DSLITE)
+		len = offsetof(struct mtk_foe_entry, ipv6._rsv);
+	else
+		len = offsetof(struct mtk_foe_entry, ipv4.ib2);
 
 	return !memcmp(&entry->data.data, &data->data, len - 4);
 }
 
 static void
-__mtk_foe_entry_clear(struct mtk_ppe *ppe, struct mtk_flow_entry *entry,
-		      bool set_state)
+__mtk_foe_entry_clear(struct mtk_ppe *ppe, struct mtk_flow_entry *entry)
 {
+	struct hlist_head *head;
 	struct hlist_node *tmp;
 
 	if (entry->type == MTK_FLOW_TYPE_L2) {
 		rhashtable_remove_fast(&ppe->l2_flows, &entry->l2_node,
 				       mtk_flow_l2_ht_params);
 
-		hlist_for_each_entry_safe(entry, tmp, &entry->l2_flows, l2_list)
-			__mtk_foe_entry_clear(ppe, entry, set_state);
+		head = &entry->l2_flows;
+		hlist_for_each_entry_safe(entry, tmp, head, l2_data.list)
+			__mtk_foe_entry_clear(ppe, entry);
 		return;
 	}
 
-	if (entry->hash != 0xffff && set_state) {
+	hlist_del_init(&entry->list);
+	if (entry->hash != 0xffff) {
 		struct mtk_foe_entry *hwe = mtk_foe_get_entry(ppe, entry->hash);
 
 		hwe->ib1 &= ~MTK_FOE_IB1_STATE;
@@ -467,8 +445,7 @@ __mtk_foe_entry_clear(struct mtk_ppe *ppe, struct mtk_flow_entry *entry,
 	if (entry->type != MTK_FLOW_TYPE_L2_SUBFLOW)
 		return;
 
-	hlist_del_init(&entry->l2_list);
-	hlist_del_init(&entry->list);
+	hlist_del_init(&entry->l2_data.list);
 	kfree(entry);
 }
 
@@ -484,55 +461,66 @@ static int __mtk_foe_entry_idle_time(struct mtk_ppe *ppe, u32 ib1)
 		return now - timestamp;
 }
 
-static bool
-mtk_flow_entry_update(struct mtk_ppe *ppe, struct mtk_flow_entry *entry)
-{
-	struct mtk_foe_entry foe = {};
-	struct mtk_foe_entry *hwe;
-	u16 hash = entry->hash;
-	int len;
-
-	if (hash == 0xffff)
-		return false;
-
-	hwe = mtk_foe_get_entry(ppe, hash);
-	len = mtk_flow_entry_match_len(ppe->eth, &entry->data);
-	memcpy(&foe, hwe, len);
-
-	if (!mtk_flow_entry_match(ppe->eth, entry, &foe, len) ||
-	    FIELD_GET(MTK_FOE_IB1_STATE, foe.ib1) != MTK_FOE_STATE_BIND)
-		return false;
-
-	entry->data.ib1 = foe.ib1;
-
-	return true;
-}
-
 static void
 mtk_flow_entry_update_l2(struct mtk_ppe *ppe, struct mtk_flow_entry *entry)
 {
 	u32 ib1_ts_mask = mtk_get_ib1_ts_mask(ppe->eth);
 	struct mtk_flow_entry *cur;
+	struct mtk_foe_entry *hwe;
 	struct hlist_node *tmp;
 	int idle;
 
 	idle = __mtk_foe_entry_idle_time(ppe, entry->data.ib1);
-	hlist_for_each_entry_safe(cur, tmp, &entry->l2_flows, l2_list) {
+	hlist_for_each_entry_safe(cur, tmp, &entry->l2_flows, l2_data.list) {
 		int cur_idle;
+		u32 ib1;
 
-		if (!mtk_flow_entry_update(ppe, cur)) {
-			__mtk_foe_entry_clear(ppe, entry, false);
+		hwe = mtk_foe_get_entry(ppe, cur->hash);
+		ib1 = READ_ONCE(hwe->ib1);
+
+		if (FIELD_GET(MTK_FOE_IB1_STATE, ib1) != MTK_FOE_STATE_BIND) {
+			cur->hash = 0xffff;
+			__mtk_foe_entry_clear(ppe, cur);
 			continue;
 		}
 
-		cur_idle = __mtk_foe_entry_idle_time(ppe, cur->data.ib1);
+		cur_idle = __mtk_foe_entry_idle_time(ppe, ib1);
 		if (cur_idle >= idle)
 			continue;
 
 		idle = cur_idle;
 		entry->data.ib1 &= ~ib1_ts_mask;
-		entry->data.ib1 |= cur->data.ib1 & ib1_ts_mask;
+		entry->data.ib1 |= hwe->ib1 & ib1_ts_mask;
 	}
+}
+
+static void
+mtk_flow_entry_update(struct mtk_ppe *ppe, struct mtk_flow_entry *entry)
+{
+	struct mtk_foe_entry foe = {};
+	struct mtk_foe_entry *hwe;
+
+	spin_lock_bh(&ppe_lock);
+
+	if (entry->type == MTK_FLOW_TYPE_L2) {
+		mtk_flow_entry_update_l2(ppe, entry);
+		goto out;
+	}
+
+	if (entry->hash == 0xffff)
+		goto out;
+
+	hwe = mtk_foe_get_entry(ppe, entry->hash);
+	memcpy(&foe, hwe, ppe->eth->soc->foe_entry_size);
+	if (!mtk_flow_entry_match(ppe->eth, entry, &foe)) {
+		entry->hash = 0xffff;
+		goto out;
+	}
+
+	entry->data.ib1 = foe.ib1;
+
+out:
+	spin_unlock_bh(&ppe_lock);
 }
 
 static void
@@ -566,28 +554,17 @@ __mtk_foe_entry_commit(struct mtk_ppe *ppe, struct mtk_foe_entry *entry,
 void mtk_foe_entry_clear(struct mtk_ppe *ppe, struct mtk_flow_entry *entry)
 {
 	spin_lock_bh(&ppe_lock);
-	__mtk_foe_entry_clear(ppe, entry, true);
-	hlist_del_init(&entry->list);
+	__mtk_foe_entry_clear(ppe, entry);
 	spin_unlock_bh(&ppe_lock);
 }
 
 static int
 mtk_foe_entry_commit_l2(struct mtk_ppe *ppe, struct mtk_flow_entry *entry)
 {
-	struct mtk_flow_entry *prev;
-
 	entry->type = MTK_FLOW_TYPE_L2;
 
-	prev = rhashtable_lookup_get_insert_fast(&ppe->l2_flows, &entry->l2_node,
-						 mtk_flow_l2_ht_params);
-	if (likely(!prev))
-		return 0;
-
-	if (IS_ERR(prev))
-		return PTR_ERR(prev);
-
-	return rhashtable_replace_fast(&ppe->l2_flows, &prev->l2_node,
-				       &entry->l2_node, mtk_flow_l2_ht_params);
+	return rhashtable_insert_fast(&ppe->l2_flows, &entry->l2_node,
+				      mtk_flow_l2_ht_params);
 }
 
 int mtk_foe_entry_commit(struct mtk_ppe *ppe, struct mtk_flow_entry *entry)
@@ -614,8 +591,8 @@ mtk_foe_entry_commit_subflow(struct mtk_ppe *ppe, struct mtk_flow_entry *entry,
 {
 	const struct mtk_soc_data *soc = ppe->eth->soc;
 	struct mtk_flow_entry *flow_info;
+	struct mtk_foe_entry foe = {}, *hwe;
 	struct mtk_foe_mac_info *l2;
-	struct mtk_foe_entry *hwe;
 	u32 ib1_mask = mtk_get_ib1_pkt_type_mask(ppe->eth) | MTK_FOE_IB1_UDP;
 	int type;
 
@@ -623,30 +600,30 @@ mtk_foe_entry_commit_subflow(struct mtk_ppe *ppe, struct mtk_flow_entry *entry,
 	if (!flow_info)
 		return;
 
+	flow_info->l2_data.base_flow = entry;
 	flow_info->type = MTK_FLOW_TYPE_L2_SUBFLOW;
 	flow_info->hash = hash;
 	hlist_add_head(&flow_info->list,
 		       &ppe->foe_flow[hash / soc->hash_offset]);
-	hlist_add_head(&flow_info->l2_list, &entry->l2_flows);
+	hlist_add_head(&flow_info->l2_data.list, &entry->l2_flows);
 
 	hwe = mtk_foe_get_entry(ppe, hash);
-	memcpy(&flow_info->data, hwe, soc->foe_entry_size);
-	flow_info->data.ib1 &= ib1_mask;
-	flow_info->data.ib1 |= entry->data.ib1 & ~ib1_mask;
+	memcpy(&foe, hwe, soc->foe_entry_size);
+	foe.ib1 &= ib1_mask;
+	foe.ib1 |= entry->data.ib1 & ~ib1_mask;
 
-	l2 = mtk_foe_entry_l2(ppe->eth, &flow_info->data);
+	l2 = mtk_foe_entry_l2(ppe->eth, &foe);
 	memcpy(l2, &entry->data.bridge.l2, sizeof(*l2));
 
-	type = mtk_get_ib1_pkt_type(ppe->eth, flow_info->data.ib1);
+	type = mtk_get_ib1_pkt_type(ppe->eth, foe.ib1);
 	if (type == MTK_PPE_PKT_TYPE_IPV4_HNAPT)
-		memcpy(&flow_info->data.ipv4.new, &flow_info->data.ipv4.orig,
-		       sizeof(flow_info->data.ipv4.new));
+		memcpy(&foe.ipv4.new, &foe.ipv4.orig, sizeof(foe.ipv4.new));
 	else if (type >= MTK_PPE_PKT_TYPE_IPV6_ROUTE_3T && l2->etype == ETH_P_IP)
 		l2->etype = ETH_P_IPV6;
 
-	*mtk_foe_entry_ib2(ppe->eth, &flow_info->data) = entry->data.bridge.ib2;
+	*mtk_foe_entry_ib2(ppe->eth, &foe) = entry->data.bridge.ib2;
 
-	__mtk_foe_entry_commit(ppe, &flow_info->data, hash);
+	__mtk_foe_entry_commit(ppe, &foe, hash);
 }
 
 void __mtk_ppe_check_skb(struct mtk_ppe *ppe, struct sk_buff *skb, u16 hash)
@@ -656,11 +633,9 @@ void __mtk_ppe_check_skb(struct mtk_ppe *ppe, struct sk_buff *skb, u16 hash)
 	struct mtk_foe_entry *hwe = mtk_foe_get_entry(ppe, hash);
 	struct mtk_flow_entry *entry;
 	struct mtk_foe_bridge key = {};
-	struct mtk_foe_entry foe = {};
 	struct hlist_node *n;
 	struct ethhdr *eh;
 	bool found = false;
-	int entry_len;
 	u8 *tag;
 
 	spin_lock_bh(&ppe_lock);
@@ -668,14 +643,20 @@ void __mtk_ppe_check_skb(struct mtk_ppe *ppe, struct sk_buff *skb, u16 hash)
 	if (FIELD_GET(MTK_FOE_IB1_STATE, hwe->ib1) == MTK_FOE_STATE_BIND)
 		goto out;
 
-	entry_len = mtk_flow_entry_match_len(ppe->eth, hwe);
-	memcpy(&foe, hwe, entry_len);
-
 	hlist_for_each_entry_safe(entry, n, head, list) {
-		if (found ||
-		    !mtk_flow_entry_match(ppe->eth, entry, &foe, entry_len)) {
+		if (entry->type == MTK_FLOW_TYPE_L2_SUBFLOW) {
+			if (unlikely(FIELD_GET(MTK_FOE_IB1_STATE, hwe->ib1) ==
+				     MTK_FOE_STATE_BIND))
+				continue;
+
+			entry->hash = 0xffff;
+			__mtk_foe_entry_clear(ppe, entry);
+			continue;
+		}
+
+		if (found || !mtk_flow_entry_match(ppe->eth, entry, hwe)) {
 			if (entry->hash != 0xffff)
-				__mtk_foe_entry_clear(ppe, entry, false);
+				entry->hash = 0xffff;
 			continue;
 		}
 
@@ -699,9 +680,7 @@ void __mtk_ppe_check_skb(struct mtk_ppe *ppe, struct sk_buff *skb, u16 hash)
 		    skb->dev->dsa_ptr->tag_ops->proto != DSA_TAG_PROTO_MTK)
 			goto out;
 
-		if (!skb_metadata_dst(skb))
-			tag += 4;
-
+		tag += 4;
 		if (get_unaligned_be16(tag) != ETH_P_8021Q)
 			break;
 
@@ -726,44 +705,9 @@ out:
 
 int mtk_foe_entry_idle_time(struct mtk_ppe *ppe, struct mtk_flow_entry *entry)
 {
-	int idle;
+	mtk_flow_entry_update(ppe, entry);
 
-	spin_lock_bh(&ppe_lock);
-	if (entry->type == MTK_FLOW_TYPE_L2)
-		mtk_flow_entry_update_l2(ppe, entry);
-	else
-		mtk_flow_entry_update(ppe, entry);
-	idle = __mtk_foe_entry_idle_time(ppe, entry->data.ib1);
-	spin_unlock_bh(&ppe_lock);
-
-	return idle;
-}
-
-int mtk_ppe_prepare_reset(struct mtk_ppe *ppe)
-{
-	if (!ppe)
-		return -EINVAL;
-
-	/* disable KA */
-	ppe_clear(ppe, MTK_PPE_TB_CFG, MTK_PPE_TB_CFG_KEEPALIVE);
-	ppe_clear(ppe, MTK_PPE_BIND_LMT1, MTK_PPE_NTU_KEEPALIVE);
-	ppe_w32(ppe, MTK_PPE_KEEPALIVE, 0);
-	usleep_range(10000, 11000);
-
-	/* set KA timer to maximum */
-	ppe_set(ppe, MTK_PPE_BIND_LMT1, MTK_PPE_NTU_KEEPALIVE);
-	ppe_w32(ppe, MTK_PPE_KEEPALIVE, 0xffffffff);
-
-	/* set KA tick select */
-	ppe_set(ppe, MTK_PPE_TB_CFG, MTK_PPE_TB_TICK_SEL);
-	ppe_set(ppe, MTK_PPE_TB_CFG, MTK_PPE_TB_CFG_KEEPALIVE);
-	usleep_range(10000, 11000);
-
-	/* disable scan mode */
-	ppe_clear(ppe, MTK_PPE_TB_CFG, MTK_PPE_TB_CFG_SCAN_MODE);
-	usleep_range(10000, 11000);
-
-	return mtk_ppe_wait_busy(ppe);
+	return __mtk_foe_entry_idle_time(ppe, entry->data.ib1);
 }
 
 struct mtk_ppe *mtk_ppe_init(struct mtk_eth *eth, void __iomem *base,
