@@ -9,18 +9,11 @@
 #include "rk3568.dtsi"
 
 / {
-	aliases {
-		led-boot = &blue_led;
-		led-failsafe = &blue_led;
-		led-running = &blue_led;
-		led-upgrade = &blue_led;
-	};
-
 	chosen: chosen {
 		stdout-path = "serial2:1500000n8";
 	};
 
-	gpio-leds {
+	gpio_leds: gpio-leds {
 		compatible = "gpio-leds";
 		pinctrl-names = "default";
 		pinctrl-0 = <&blue_led_pin>;
@@ -28,11 +21,11 @@
 		blue_led: blue-led {
 			label = "blue:working";
 			gpios = <&gpio0 RK_PC0 GPIO_ACTIVE_HIGH>;
-		 	linux,default-trigger = "timer";	
+			linux,default-trigger = "heartbeat";
 		};
 	};
 
-	gpio-keys {
+	gpio_keys: gpio-keys {
 		compatible = "gpio-keys";
 		pinctrl-names = "default";
 		pinctrl-0 = <&reset_button_pin>;
@@ -82,6 +75,16 @@
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		vin-supply = <&dc_12v>;
+	};
+
+	vcc3v3_pi6c: vcc3v3-pi6c-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_pi6c";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		vin-supply = <&vcc5v0_sys>;
 	};
 
 	vcc5v0_usb: vcc5v0-usb {
@@ -399,7 +402,7 @@
 			compatible = "pci10ec,8125";
 			reg = <0x000000 0 0 0 0>;
 
-			realtek,led-data = <0x4078>;
+			realtek,led-data = <0x0238>;
 		};
 	};
 };
@@ -419,7 +422,7 @@
 			compatible = "pci10ec,8125";
 			reg = <0x000000 0 0 0 0>;
 
-			realtek,led-data = <0x4078>;
+			realtek,led-data = <0x0238>;
 		};
 	};
 };
@@ -512,7 +515,7 @@
 };
 
 &usb2phy0_host {
-	phy-supply = <&vcc5v0_usb>;
+	phy-supply = <&vcc5v0_usb_otg>;
 	status = "okay";
 };
 
