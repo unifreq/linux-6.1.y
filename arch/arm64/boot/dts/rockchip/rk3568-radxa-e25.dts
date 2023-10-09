@@ -13,13 +13,6 @@
 	model = "Radxa E25";
 	compatible = "radxa,e25", "rockchip,rk3568";
 
-	alias {
-		led-boot = &led_surround_red;
-		led-failsafe = &led_surround_red;
-		led-running = &led_surround_red;
-		led-upgrade = &led_surround_red;
-	};
-
 	vcc5v0_otg: vcc5v0-otg-regulator {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc5v0_otg";
@@ -118,25 +111,24 @@
 		led_surround_red: led-surround-red {
 			gpios = <&gpio0 RK_PC0 GPIO_ACTIVE_HIGH>;
 			label = "surround:red";
-			linux,default-trigger = "timer";
-			default-state = "on";
 			pinctrl-0 = <&led_surround_red_en>;
+			pinctrl-names = "led_surround_red";
    	    	};
 
        		led_surround_green: led-surround-green {
 			gpios = <&gpio0 RK_PC1 GPIO_ACTIVE_HIGH>;
 			label = "surround:green";
-			linux,default-trigger = "heartbeat";
+			linux,default-trigger = "default-on";
 			default-state = "on";
 			pinctrl-0 = <&led_surround_green_en>;
+			pinctrl-names = "led_surround_green";
        		};
 
        		led_surround_blue: led-surround-blue {
 			gpios = <&gpio4 RK_PC5 GPIO_ACTIVE_HIGH>;
 			label = "surround:blue";
-			linux,default-trigger = "default-on";
-			default-state = "on";
 			pinctrl-0 = <&led_surround_blue_en>;
+			pinctrl-names = "led_surround_blue";
        		};
 	};
 };
