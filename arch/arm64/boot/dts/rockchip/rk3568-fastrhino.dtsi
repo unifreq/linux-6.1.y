@@ -485,11 +485,11 @@
 };
 
 &usb_host0_ehci {
-	status = "okay";
+	status = "disabled";
 };
 
 &usb_host0_ohci {
-	status = "okay";
+	status = "disabled";
 };
 
 &usb_host0_xhci {
@@ -499,11 +499,11 @@
 };
 
 &usb_host1_ehci {
-	status = "okay";
+	status = "disabled";
 };
 
 &usb_host1_ohci {
-	status = "okay";
+	status = "disabled";
 };
 
 &usb_host1_xhci {
@@ -525,17 +525,17 @@
 };
 
 &usb2phy1 {
-	status = "okay";
+	status = "disabled";
 };
 
 &usb2phy1_host {
 	phy-supply = <&vcc5v0_usb_otg>;
-	status = "okay";
+	status = "disabled";
 };
 
 &usb2phy1_otg {
 	phy-supply = <&vcc5v0_usb_otg>;
-	status = "okay";
+	status = "disabled";
 };
 
 &vop {
