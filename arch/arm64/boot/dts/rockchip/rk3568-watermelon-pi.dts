@@ -51,7 +51,7 @@
 	assigned-clock-parents = <&cru SCLK_GMAC0_RGMII_SPEED>;
 	assigned-clock-rates = <0>, <125000000>;
 	clock_in_out = "output";
-	phy-mode = "rgmii-id";
+	phy-mode = "rgmii";
 	pinctrl-names = "default";
 	pinctrl-0 = <&gmac0_miim
 		     &gmac0_tx_bus2
@@ -61,8 +61,8 @@
 	snps,reset-gpio = <&gpio3 RK_PB7 GPIO_ACTIVE_LOW>;
 	snps,reset-active-low;
 	snps,reset-delays-us = <0 20000 100000>;
-	tx_delay = <0x3c>;
-	rx_delay = <0x2f>;
+	tx_delay = <0x36>;
+	rx_delay = <0x2c>;
 	phy-handle = <&rgmii_phy0>;
 	status = "okay";
 };
@@ -82,8 +82,8 @@
 	snps,reset-gpio = <&gpio3 RK_PB0 GPIO_ACTIVE_LOW>;
 	snps,reset-active-low;
 	snps,reset-delays-us = <0 20000 100000>;
-	tx_delay = <0x3c>;
-	rx_delay = <0x2f>;
+	tx_delay = <0x44>;
+	rx_delay = <0x28>;
 	phy-handle = <&rgmii_phy1>;
 	phy-supply = <&vcca1v8_image_p>;
 	status = "okay";
