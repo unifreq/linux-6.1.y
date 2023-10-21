@@ -271,7 +271,7 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&fusb0_int>;
 		vbus-supply = <&vbus_typec>;
-		status = "okay";
+		status = "disabled";
 
 		usb_con: connector {
 			compatible = "usb-c-connector";
