@@ -408,8 +408,20 @@
 	};
 
 	lcd_display {
+		spi3_sck: spi3-sck {
+			rockchip,pins = <4 RK_PC2 2 &pcfg_pull_up_drv_level_1>;
+		};
+
+		spi3_mosi: spi3-mosi {
+			rockchip,pins = <4 RK_PC3 2 &pcfg_pull_up_drv_level_1>;
+		};
+
 		lcd_reset_pin: lcd-reset-pin {
-			rockchip,pins = <4 RK_PC4 RK_FUNC_GPIO &pcfg_pull_up>;
+			rockchip,pins = <4 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		lcd_dc_pin: display_dc_pin {
+			rockchip,pins = <4 RK_PC5 RK_FUNC_GPIO &pcfg_pull_up_drv_level_1>;
 		};
 	};
 
@@ -451,19 +463,19 @@
 };
 
 &spi3 {
-	pinctrl-names = "default", "high_speed";
-	pinctrl-0 = <&spi3m1_cs0 &spi3m1_pins>;
-	pinctrl-1 = <&spi3m1_cs0 &spi3m1_pins_hs>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&spi3m1_cs0_hs &spi3_sck &spi3_mosi>;
 	status = "okay";
 
 	lcd_display: lcd-display@0 {
-		reg = <0>;
 		compatible = "sitronix,st7735r";
-		pinctrl-names = "default";
-		pinctrl-0 = <&lcd_reset_pin>;
+		reg = <0>;
+		spi-max-frequency = <50000000>;
 		rotate = <0>;
 		dc-gpios = <&gpio4 RK_PC5 GPIO_ACTIVE_HIGH>;
 		reset-gpios = <&gpio4 RK_PC4 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&lcd_dc_pin &lcd_reset_pin>;
 		backlight = <&backlight>;
 		buswidth = <8>;
 		debug = <0x0>;
