@@ -30,7 +30,7 @@
 		compatible = "pwm-leds";
 
 		pwm_led: pwm-led {
-			label = "led:pwm";
+			label = "blue:pwm";
 			pwms = <&pwm5 0 1000000 0>;
 			max-brightness = <255>;
 		};
@@ -373,19 +373,19 @@
 
 &pwm5 {
 	pinctrl-0 = <&pwm5_pins>;
-	pinctrl-names = "active";
+	pinctrl-names = "default";
 	status = "okay";
 };
 
 &pwm7 {
 	pinctrl-0 = <&pwm7_pins>;
-	pinctrl-names = "active";
+	pinctrl-names = "default";
 	status = "okay";
 };
 
 &pwm14 {
 	pinctrl-0 = <&pwm14m0_pins>;
-	pinctrl-names = "active";
+	pinctrl-names = "default";
 	status = "okay";
 };
 

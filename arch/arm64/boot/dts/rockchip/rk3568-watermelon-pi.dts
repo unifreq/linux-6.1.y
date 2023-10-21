@@ -375,7 +375,7 @@
 
 &pwm7 {
 	pinctrl-0 = <&pwm7_pins>;
-	pinctrl-names = "active";
+	pinctrl-names = "default";
 	status = "okay";
 };
 
