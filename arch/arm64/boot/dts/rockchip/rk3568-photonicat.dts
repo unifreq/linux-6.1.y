@@ -324,7 +324,7 @@
 		     &gmac1m1_rgmii_bus>;
 	snps,reset-gpio = <&gpio4 RK_PC0 GPIO_ACTIVE_LOW>;
 	snps,reset-active-low;
-	snps,reset-delays-us = <0 50000 200000>;
+	snps,reset-delays-us = <0 20000 100000>;
 	tx_delay = <0x38>;
 	rx_delay = <0x15>;
 	status = "okay";
@@ -639,7 +639,11 @@
 };
 
 &xin32k {
-	status = "disabled";
+	clock-frequency = <32768>;
+	clock-output-names = "xin32k";
+	pinctrl-0 = <&clk32k_out1>;
+	pinctrl-names = "default";
+	status = "okay";
 };
 
 &xpcs {
