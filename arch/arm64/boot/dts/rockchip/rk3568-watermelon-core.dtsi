@@ -467,6 +467,9 @@
 	no-sd;
 	non-removable;
 	max-frequency = <200000000>;
+	cap-mmc-highspeed;
+	mmc-ddr-1_8v;
+	mmc-hs200-1_8v;
 	full-pwr-cycle-in-suspend;
 	status = "okay";
 	vmmc-supply = <&vcc_3v3>;
