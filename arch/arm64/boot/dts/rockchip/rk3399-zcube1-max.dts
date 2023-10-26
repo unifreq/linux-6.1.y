@@ -249,8 +249,8 @@
 	snps,reset-gpio = <&gpio1 RK_PC4 GPIO_ACTIVE_LOW>;
 	snps,reset-active-low;
 	snps,reset-delays-us = <0 10000 50000>;
-	tx_delay = <0x2b>;
-	rx_delay = <0x29>;
+	tx_delay = <0x1b>;
+	rx_delay = <0x1a>;
 	status = "okay";
 };
 
