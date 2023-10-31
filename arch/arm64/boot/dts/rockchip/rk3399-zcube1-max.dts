@@ -14,6 +14,8 @@
 	aliases {
 		mmc0 = &sdio0;
 		mmc1 = &sdhci;
+		rtc0 = &hym8563;
+		rtc1 = &rk808_rtc;
 	};
 
 	chosen {
@@ -494,6 +496,11 @@ hdmi-5v-gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
 					regulator-off-in-suspend;
 				};
 			};
+		};
+
+		rk808_rtc: rk808-rtc {
+			compatible = "rk808-rtc";
+			status = "okay";
 		};
 	};
 };
