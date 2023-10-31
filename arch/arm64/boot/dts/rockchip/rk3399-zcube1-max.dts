@@ -45,22 +45,24 @@
 	leds {
 		compatible = "gpio-leds";
 		pinctrl-names = "default";
-		pinctrl-0 = <&power_led_pin>, <&usb_led_pin>;
+		pinctrl-0 = <&power_led_pin>;
 		status = "okay";
 
 		power_led: led-power {
 			label = "white:power";
 			gpios = <&gpio3 RK_PD6 GPIO_ACTIVE_HIGH>;
 			default-state = "on";
-			linux,default-trigger = "ir-power-click";
-		};
-
-		usb_led: led-usb {
-			label = "red:usb";
-			gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>; // bsp
-			default-state = "on";
 			linux,default-trigger = "default-on";
 		};
+	};
+
+	vcc12v_dcin: vcc12v-dcin {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc12v_dcin";
+		regulator-min-microvolt = <12000000>;
+		regulator-max-microvolt = <12000000>;
+		regulator-always-on;
+		regulator-boot-on;
 	};
 
 	vcc5v0_sys: vcc5v0-sys {
@@ -70,13 +72,7 @@
 		regulator-max-microvolt = <5000000>;
 		regulator-always-on;
 		regulator-boot-on;
-	};
-
-	vcc_phy: vcc-phy-regulator { // bsp
-		compatible = "regulator-fixed";
-		regulator-name = "vcc_phy";
-		regulator-always-on;
-		regulator-boot-on;
+		vin-supply = <&vcc12v_dcin>;
 	};
 
 	vcc1v8_s0: vcc1v8-s0 { // bsp
@@ -95,25 +91,17 @@
 		regulator-max-microvolt = <3300000>;
 		regulator-always-on;
 		regulator-boot-on;
+		vin-supply = <&vcc5v0_sys>;
 	};
 
-	vcc5v0_host: vcc5v0-host-regulator {
+	vcc5v0_usb_phy: vcc5v0-usb-phy {
 		compatible = "regulator-fixed";
 		enable-active-high;
-		gpio = <&gpio1 RK_PA2 GPIO_ACTIVE_HIGH>; // bsp
+		gpio = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
-		pinctrl-0 = <&host_vbus_drv>;
-		regulator-name = "vcc5v0_host";
-		regulator-always-on;
-	};
-
-	vcc5v0_sys: vcc5v0-sys { // sys
-		compatible = "regulator-fixed";
-		regulator-name = "vcc5v0_sys";
-		regulator-always-on;
-		regulator-boot-on;
-		regulator-min-microvolt = <5000000>;
-		regulator-max-microvolt = <5000000>;
+		pinctrl-0 = <&vcc5v0_usb_phy_en>;
+		regulator-name = "vcc5v0_usb_phy";
+		vin-supply = <&vcc5v0_sys>;
 	};
 
 	vdd_log: vdd-log { // bsp
@@ -242,7 +230,7 @@
 	assigned-clocks = <&cru SCLK_RMII_SRC>;
 	assigned-clock-parents = <&clkin_gmac>;
 	clock_in_out = "input";
-	phy-supply = <&vcc_phy>;
+	phy-supply = <&vcc3v3_sys>;
 	phy-mode = "rgmii";
 	pinctrl-names = "default";
 	pinctrl-0 = <&rgmii_pins>;
@@ -677,10 +665,6 @@ hdmi-5v-gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
 		power_led_pin: power-led-pin {
 			rockchip,pins = <3 RK_PD6 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
-
-		usb_led_pin: usb-led-pin {
-			rockchip,pins = <1 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
 	};
 
 	pmic {
@@ -725,10 +709,10 @@ hdmi-5v-gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
 		};
 	};
 
-	usb2 {
-		host_vbus_drv: host-vbus-drv {
+	usb {
+		vcc5v0_usb_phy_en: vcc5v0-usb-phy-en {
 			rockchip,pins =
-				<1 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>; // bsp
+				<1 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>; // bsp
 		};
 	};
 
@@ -799,10 +783,20 @@ hdmi-5v-gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
 
 &tcphy0 {
 	status = "okay";
+	phy-supply = <&vcc5v0_usb_phy>;
 };
 
 &tcphy1 {
 	status = "okay";
+	phy-supply = <&vcc5v0_usb_phy>;
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	usb3_hub: usb3-hub@1 {
+		compatible = "usb5e3,626";
+		reg = <1>;
+	};
 };
 
 &tsadc {
@@ -817,12 +811,12 @@ hdmi-5v-gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
 	status = "okay";
 
 	u2phy0_host: host-port {
-		phy-supply = <&vcc5v0_host>;
+		//phy-supply = <&vcc5v0_usb_phy>;
 		status = "disabled";
 	};
 
 	u2phy0_otg: otg-port {
-		phy-supply = <&vcc5v0_host>;
+		phy-supply = <&vcc5v0_usb_phy>;
 		status = "okay";
 	};
 };
@@ -831,13 +825,21 @@ hdmi-5v-gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
 	status = "okay";
 
 	u2phy1_host: host-port {
-		phy-supply = <&vcc5v0_host>;
+		//phy-supply = <&vcc5v0_usb_phy>;
 		status = "disabled";
 	};
 
 	u2phy1_otg: otg-port {
-		phy-supply = <&vcc5v0_host>;
+		phy-supply = <&vcc5v0_usb_phy>;
 		status = "okay";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		usb2_hub: usb2-hub@1 {
+			compatible = "usb5e3,626";
+			reg = <1>;
+		};
 	};
 };
 
