@@ -341,6 +341,14 @@ hdmi-5v-gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
 		vcc12-supply = <&vcc3v3_sys>;
 		vddio-supply = <&vcc1v8_pmu>;
 
+		pwrkey {
+				status = "okay";
+		};
+
+		rk808_rtc: rtc {
+				status = "okay";
+		};
+
 		regulators {
 			vdd_center: DCDC_REG1 {
 				regulator-name = "vdd_center";
@@ -496,11 +504,6 @@ hdmi-5v-gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
 					regulator-off-in-suspend;
 				};
 			};
-		};
-
-		rk808_rtc: rk808-rtc {
-			compatible = "rk808-rtc";
-			status = "okay";
 		};
 	};
 };
