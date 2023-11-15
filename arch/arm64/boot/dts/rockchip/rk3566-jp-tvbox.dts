@@ -55,13 +55,13 @@
 		};
 	};
 
-	vbus: vbus-regulator {
+	vcc12v_dcin: vcc12v-dcin {
 		compatible = "regulator-fixed";
-		regulator-name = "vbus";
+		regulator-name = "vcc12v_dcin";
 		regulator-always-on;
 		regulator-boot-on;
-		regulator-min-microvolt = <5000000>;
-		regulator-max-microvolt = <5000000>;
+		regulator-min-microvolt = <12000000>;
+		regulator-max-microvolt = <12000000>;
 	};
 
 	vcc5v0_sys: vcc5v0-sys-regulator {
@@ -71,7 +71,7 @@
 		regulator-boot-on;
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
-		vin-supply = <&vbus>;
+		vin-supply = <&vcc12v_dcin>;
 	};
 
 	vcc3v3_sys: vcc3v3-sys-regulator {
@@ -102,7 +102,7 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&wifi_host_wake_irq>;
 		WIFI,host_wake_irq = <&gpio2 RK_PB2 GPIO_ACTIVE_HIGH>;
-		status = "okay";
+		status = "disabled";
 	};
 
 };
@@ -153,8 +153,8 @@
 	snps,reset-active-low;
 	/* Reset time is 20ms, 100ms for rtl8211f, also works well here */
 	snps,reset-delays-us = <0 20000 100000>;
-	tx_delay = <0x41>;
-	rx_delay = <0x2e>;
+	tx_delay = <0x3f>;
+	rx_delay = <0x3f>;
 	phy-handle = <&rgmii_phy1>;
 	status = "okay";
 };
@@ -163,7 +163,6 @@
 	rgmii_phy1: ethernet-phy@0 {
 		compatible = "ethernet-phy-ieee802.3-c22";
 		reg = <0>;
-		status = "okay";
 	};
 };
 
@@ -460,9 +459,9 @@
 	pmuio2-supply = <&vcc3v3_pmu>;
 	vccio1-supply = <&vccio_acodec>;
 	vccio3-supply = <&vccio_sd>;
-	vccio4-supply = <&vcc_1v8>;
+	vccio4-supply = <&vcc_3v3>;
 	vccio5-supply = <&vcc_3v3>;
-	vccio6-supply = <&vcc_1v8>;
+	vccio6-supply = <&vcc_3v3>;
 	vccio7-supply = <&vcc_3v3>;
 	status = "okay";
 };
@@ -550,15 +549,15 @@
 };
 
 &usb2phy1 {
-	status = "okay";
+	status = "disabled";
 };
 
 &usb2phy1_host {
-	status = "okay";
+	status = "disabled";
 };
 
 &usb2phy1_otg {
-	status = "okay";
+	status = "disabled";
 };
 
 &vop {
