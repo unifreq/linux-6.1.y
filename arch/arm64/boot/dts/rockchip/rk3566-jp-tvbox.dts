@@ -567,7 +567,6 @@
 	non-removable;
 	rockchip,default-sample-phase=<90>;
 	mmc-pwrseq = <&sdio_pwrseq>;
-	non-removable;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc1_bus4 &sdmmc1_cmd &sdmmc1_clk>;
 	#address-cells = <1>;
