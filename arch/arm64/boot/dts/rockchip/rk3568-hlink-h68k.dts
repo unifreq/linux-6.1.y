@@ -54,7 +54,7 @@
 		};
 	};
 
-	leds {
+	leds: leds {
 		compatible = "gpio-leds";
 		pinctrl-names = "default";
 		pinctrl-0 = <&led_net_en>, <&led_sata_en>, <&led_work_en>;
