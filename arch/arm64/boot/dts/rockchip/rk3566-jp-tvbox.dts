@@ -155,7 +155,7 @@
 		dev_name = "openvfd";
 		status = "okay";
 		vfd_gpio_clk = <&gpio0 RK_PB3 GPIO_ACTIVE_HIGH>;
-		vfd_gpio_dat = <&gpio0 rk_PB4 GPIO_ACTIVE_HIGH>;
+		vfd_gpio_dat = <&gpio0 RK_PB4 GPIO_ACTIVE_HIGH>;
 	};
 };
 
