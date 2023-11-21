@@ -1027,7 +1027,8 @@ void wiphy_rfkill_start_polling(struct wiphy *wiphy)
 }
 EXPORT_SYMBOL(wiphy_rfkill_start_polling);
 
-void cfg80211_process_wiphy_works(struct cfg80211_registered_device *rdev)
+void cfg80211_process_wiphy_works(struct cfg80211_registered_device *rdev,
+				  struct wiphy_work *end)
 {
 	unsigned int runaway_limit = 100;
 	unsigned long flags;
@@ -1046,6 +1047,10 @@ void cfg80211_process_wiphy_works(struct cfg80211_registered_device *rdev)
 		wk->func(&rdev->wiphy, wk);
 
 		spin_lock_irqsave(&rdev->wiphy_work_lock, flags);
+
+		if (wk == end)
+			break;
+
 		if (WARN_ON(--runaway_limit == 0))
 			INIT_LIST_HEAD(&rdev->wiphy_work_list);
 	}
@@ -1096,7 +1101,7 @@ void wiphy_unregister(struct wiphy *wiphy)
 #endif
 
 	/* surely nothing is reachable now, clean up work */
-	cfg80211_process_wiphy_works(rdev);
+	cfg80211_process_wiphy_works(rdev, NULL);
 	wiphy_unlock(&rdev->wiphy);
 	rtnl_unlock();
 
@@ -1621,6 +1626,21 @@ void wiphy_work_cancel(struct wiphy *wiphy, struct wiphy_work *work)
 }
 EXPORT_SYMBOL_GPL(wiphy_work_cancel);
 
+void wiphy_work_flush(struct wiphy *wiphy, struct wiphy_work *work)
+{
+	struct cfg80211_registered_device *rdev = wiphy_to_rdev(wiphy);
+	unsigned long flags;
+	bool run;
+
+	spin_lock_irqsave(&rdev->wiphy_work_lock, flags);
+	run = !work || !list_empty(&work->entry);
+	spin_unlock_irqrestore(&rdev->wiphy_work_lock, flags);
+
+	if (run)
+		cfg80211_process_wiphy_works(rdev, work);
+}
+EXPORT_SYMBOL_GPL(wiphy_work_flush);
+
 void wiphy_delayed_work_timer(struct timer_list *t)
 {
 	struct wiphy_delayed_work *dwork = from_timer(dwork, t, timer);
@@ -1652,6 +1672,16 @@ void wiphy_delayed_work_cancel(struct wiphy *wiphy,
 	wiphy_work_cancel(wiphy, &dwork->work);
 }
 EXPORT_SYMBOL_GPL(wiphy_delayed_work_cancel);
+
+void wiphy_delayed_work_flush(struct wiphy *wiphy,
+			      struct wiphy_delayed_work *dwork)
+{
+	lockdep_assert_held(&wiphy->mtx);
+
+	del_timer_sync(&dwork->timer);
+	wiphy_work_flush(wiphy, &dwork->work);
+}
+EXPORT_SYMBOL_GPL(wiphy_delayed_work_flush);
 
 static int __init cfg80211_init(void)
 {
