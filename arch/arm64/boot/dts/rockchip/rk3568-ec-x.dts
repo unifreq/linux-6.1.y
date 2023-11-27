@@ -314,20 +314,23 @@
 	assigned-clocks = <&cru SCLK_GMAC0_RX_TX>, <&cru SCLK_GMAC0>;
 	assigned-clock-parents = <&cru SCLK_GMAC0_RGMII_SPEED>;
 	assigned-clock-rates = <0>, <125000000>;
-	clock_in_out = "input";
-	phy-mode = "rgmii-id";
 	pinctrl-names = "default";
 	pinctrl-0 = <&gmac0_miim
 		     &gmac0_tx_bus2
 		     &gmac0_rx_bus2
 		     &gmac0_rgmii_clk
 		     &gmac0_rgmii_bus>;
+
+	clock_in_out = "input";
+	phy-mode = "rgmii";
+	tx_delay = <0x34>;
+	rx_delay = <0x2e>;
+
 	snps,reset-gpio = <&gpio2 RK_PD3 GPIO_ACTIVE_LOW>;
 	snps,reset-active-low;
 	snps,reset-delays-us = <0 50000 200000>;
-	tx_delay = <0x3c>;
-	rx_delay = <0x2f>;
 	phy-handle = <&rgmii_phy0>;
+
 	status = "okay";
 };
 
