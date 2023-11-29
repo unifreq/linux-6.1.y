@@ -481,7 +481,7 @@
 		backlight = <&backlight>;
 		buswidth = <8>;
 		debug = <0x0>;
-		status = "okay";
+		status = "disabled";
 	};
 };
 
