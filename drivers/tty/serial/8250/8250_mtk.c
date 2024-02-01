@@ -32,7 +32,7 @@
 #define MTK_UART_RXTRI_AD	0x14	/* RX Trigger address */
 #define MTK_UART_FRACDIV_L	0x15	/* Fractional divider LSB address */
 #define MTK_UART_FRACDIV_M	0x16	/* Fractional divider MSB address */
-#define MTK_UART_DEBUG0	0x18
+#define MTK_UART_DEBUG0		0x18
 #define MTK_UART_IER_XOFFI	0x20	/* Enable XOFF character interrupt */
 #define MTK_UART_IER_RTSI	0x40	/* Enable RTS Modem status interrupt */
 #define MTK_UART_IER_CTSI	0x80	/* Enable CTS Modem status interrupt */
@@ -418,13 +418,12 @@ static int __maybe_unused mtk8250_runtime_suspend(struct device *dev)
 	struct mtk8250_data *data = dev_get_drvdata(dev);
 	struct uart_8250_port *up = serial8250_get_port(data->line);
 
-	/* wait until UART in idle status */
-	while
-		(serial_in(up, MTK_UART_DEBUG0));
-
 	if (data->clk_count == 0U) {
 		dev_dbg(dev, "%s clock count is 0\n", __func__);
 	} else {
+		/* wait until UART in idle status */
+		while
+			(serial_in(up, MTK_UART_DEBUG0));
 		clk_disable_unprepare(data->bus_clk);
 		data->clk_count--;
 	}
