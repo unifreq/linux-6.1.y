@@ -11,7 +11,6 @@
 #include <linux/mii.h>
 #include <linux/ethtool.h>
 #include <linux/usb.h>
-#include <linux/of.h>
 #include <linux/crc32.h>
 #include <linux/if_vlan.h>
 #include <linux/uaccess.h>
@@ -6918,22 +6917,6 @@ static void rtl_tally_reset(struct r8152 *tp)
 	ocp_write_word(tp, MCU_TYPE_PLA, PLA_RSTTALLY, ocp_data);
 }
 
-static int r8152_led_configuration(struct r8152 *tp)
-{
-	u32 led_data;
-	int ret;
-
-	ret = of_property_read_u32(tp->udev->dev.of_node, "realtek,led-data",
-								&led_data);
-
-	if (ret)
-		return ret;
-	
-	ocp_write_word(tp, MCU_TYPE_PLA, PLA_LEDSEL, led_data);
-
-	return 0;
-}
-
 static void r8152b_init(struct r8152 *tp)
 {
 	u32 ocp_data;
@@ -6975,8 +6958,6 @@ static void r8152b_init(struct r8152 *tp)
 	ocp_data = ocp_read_word(tp, MCU_TYPE_USB, USB_USB_CTRL);
 	ocp_data &= ~(RX_AGG_DISABLE | RX_ZERO_EN);
 	ocp_write_word(tp, MCU_TYPE_USB, USB_USB_CTRL, ocp_data);
-
-	r8152_led_configuration(tp);
 }
 
 static void r8153_init(struct r8152 *tp)
@@ -7117,8 +7098,6 @@ static void r8153_init(struct r8152 *tp)
 		tp->coalesce = COALESCE_SLOW;
 		break;
 	}
-
-	r8152_led_configuration(tp);
 }
 
 static void r8153b_init(struct r8152 *tp)
@@ -7201,8 +7180,6 @@ static void r8153b_init(struct r8152 *tp)
 	rtl_tally_reset(tp);
 
 	tp->coalesce = 15000;	/* 15 us */
-
-	r8152_led_configuration(tp);
 }
 
 static void r8153c_init(struct r8152 *tp)
