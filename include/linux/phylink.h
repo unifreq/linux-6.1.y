@@ -446,8 +446,6 @@ struct phylink_pcs {
 /**
  * struct phylink_pcs_ops - MAC PCS operations structure.
  * @pcs_validate: validate the link configuration.
- * @pcs_enable: enable the PCS.
- * @pcs_disable: disable the PCS.
  * @pcs_get_state: read the current MAC PCS link state from the hardware.
  * @pcs_config: configure the MAC PCS for the selected mode and state.
  * @pcs_an_restart: restart 802.3z BaseX autonegotiation.
@@ -457,8 +455,6 @@ struct phylink_pcs {
 struct phylink_pcs_ops {
 	int (*pcs_validate)(struct phylink_pcs *pcs, unsigned long *supported,
 			    const struct phylink_link_state *state);
-	int (*pcs_enable)(struct phylink_pcs *pcs);
-	void (*pcs_disable)(struct phylink_pcs *pcs);
 	void (*pcs_get_state)(struct phylink_pcs *pcs,
 			      struct phylink_link_state *state);
 	int (*pcs_config)(struct phylink_pcs *pcs, unsigned int mode,
@@ -487,18 +483,6 @@ struct phylink_pcs_ops {
  */
 int pcs_validate(struct phylink_pcs *pcs, unsigned long *supported,
 		 const struct phylink_link_state *state);
-
-/**
- * pcs_enable() - enable the PCS.
- * @pcs: a pointer to a &struct phylink_pcs.
- */
-int pcs_enable(struct phylink_pcs *pcs);
-
-/**
- * pcs_disable() - disable the PCS.
- * @pcs: a pointer to a &struct phylink_pcs.
- */
-void pcs_disable(struct phylink_pcs *pcs);
 
 /**
  * pcs_get_state() - Read the current inband link state from the hardware
@@ -629,30 +613,6 @@ int phylink_speed_up(struct phylink *pl);
 #define phylink_test(bm, mode)	__phylink_do_bit(test_bit, bm, mode)
 
 void phylink_set_port_modes(unsigned long *bits);
-
-/**
- * phylink_get_link_timer_ns - return the PCS link timer value
- * @interface: link &typedef phy_interface_t mode
- *
- * Return the PCS link timer setting in nanoseconds for the PHY @interface
- * mode, or -EINVAL if not appropriate.
- */
-static inline int phylink_get_link_timer_ns(phy_interface_t interface)
-{
-	switch (interface) {
-	case PHY_INTERFACE_MODE_SGMII:
-	case PHY_INTERFACE_MODE_QSGMII:
-	case PHY_INTERFACE_MODE_USXGMII:
-		return 1600000;
-
-	case PHY_INTERFACE_MODE_1000BASEX:
-	case PHY_INTERFACE_MODE_2500BASEX:
-		return 10000000;
-
-	default:
-		return -EINVAL;
-	}
-}
 
 void phylink_mii_c22_pcs_decode_state(struct phylink_link_state *state,
 				      u16 bmsr, u16 lpa);

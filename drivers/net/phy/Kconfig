@@ -44,14 +44,6 @@ config LED_TRIGGER_PHY
 		<Speed in megabits>Mbps OR <Speed in gigabits>Gbps OR link
 		for any speed known to the PHY.
 
-config PHYLIB_LEDS
-	bool "Support probing LEDs from device tree"
-	depends on LEDS_CLASS=y || LEDS_CLASS=PHYLIB
-	depends on OF
-	default y
-	help
-	  When LED class support is enabled, phylib can automatically
-	  probe LED setting from device tree.
 
 config FIXED_PHY
 	tristate "MDIO Bus/PHY emulation with fixed speed/link PHYs"
@@ -273,7 +265,7 @@ config MOTORCOMM_PHY
 	tristate "Motorcomm PHYs"
 	help
 	  Enables support for Motorcomm network PHYs.
-	  Currently supports YT85xx Gigabit Ethernet PHYs.
+	  Currently supports the YT8511 gigabit PHY.
 
 config NATIONAL_PHY
 	tristate "National Semiconductor PHYs"
