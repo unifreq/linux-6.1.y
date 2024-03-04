@@ -2783,6 +2783,7 @@ static const char *const rtn_type_names[__RTN_MAX] = {
 	[RTN_THROW] = "THROW",
 	[RTN_NAT] = "NAT",
 	[RTN_XRESOLVE] = "XRESOLVE",
+	[RTN_POLICY_FAILED] = "POLICY_FAILED",
 };
 
 static inline const char *rtn_type(char *buf, size_t len, unsigned int t)
