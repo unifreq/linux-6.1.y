@@ -738,9 +738,8 @@ static void __rtw_pci_flush_queues(struct rtw_dev *rtwdev, u32 pci_queues,
 	u8 q;
 
 	for (q = 0; q < RTK_MAX_TX_QUEUE_NUM; q++) {
-		/* Unnecessary to flush BCN, H2C and HI tx queues. */
-		if (q == RTW_TX_QUEUE_BCN || q == RTW_TX_QUEUE_H2C ||
-		    q == RTW_TX_QUEUE_HI0)
+		/* It may be not necessary to flush BCN and H2C tx queues. */
+		if (q == RTW_TX_QUEUE_BCN || q == RTW_TX_QUEUE_H2C)
 			continue;
 
 		if (pci_queues & BIT(q))
