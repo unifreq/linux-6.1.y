@@ -37,6 +37,8 @@
 
 #include "efi-header.S"
 
+#define __PHYS_OFFSET  (KERNEL_START - TEXT_OFFSET)
+
 #if (PAGE_OFFSET & 0x1fffff) != 0
 #error PAGE_OFFSET must be at least 2MB aligned
 #endif
@@ -49,6 +51,9 @@
  *   MMU = off, D-cache = off, I-cache = on or off,
  *   x0 = physical address to the FDT blob.
  *
+ * This code is mostly position independent so you call this at
+ * __pa(PAGE_OFFSET + TEXT_OFFSET).
+ *
  * Note that the callee-saved registers are used for storing variables
  * that are useful before the MMU is enabled. The allocations are described
  * in the entry routines.
@@ -59,7 +64,7 @@
 	 */
 	efi_signature_nop			// special NOP to identity as PE/COFF executable
 	b	primary_entry			// branch to kernel start, magic
-	.quad	0				// Image load offset from start of RAM, little-endian
+	le64sym	_kernel_offset_le		// Image load offset from start of RAM, little-endian
 	le64sym	_kernel_size_le			// Effective size of kernel image, little-endian
 	le64sym	_kernel_flags_le		// Informative flags, little-endian
 	.quad	0				// reserved
@@ -370,7 +375,7 @@ SYM_FUNC_END(create_idmap)
 
 SYM_FUNC_START_LOCAL(create_kernel_mapping)
 	adrp	x0, init_pg_dir
-	mov_q	x5, KIMAGE_VADDR		// compile time __va(_text)
+	mov_q	x5, KIMAGE_VADDR + TEXT_OFFSET		// compile time __va(_text)
 #ifdef CONFIG_RELOCATABLE
 	add	x5, x5, x23			// add KASLR displacement
 #endif
@@ -415,7 +420,7 @@ SYM_FUNC_END(create_kernel_mapping)
 /*
  * The following fragment of code is executed with the MMU enabled.
  *
- *   x0 = __pa(KERNEL_START)
+ *   x0 = __PHYS_OFFSET
  */
 SYM_FUNC_START_LOCAL(__primary_switched)
 	adr_l	x4, init_task
@@ -468,6 +473,13 @@ SYM_FUNC_START_LOCAL(__primary_switched)
 	bl	start_kernel
 	ASM_BUG()
 SYM_FUNC_END(__primary_switched)
+
+        .pushsection ".rodata", "a"
+ SYM_DATA_START(kimage_vaddr)
+        .quad           _text - TEXT_OFFSET
+ SYM_DATA_END(kimage_vaddr)
+ EXPORT_SYMBOL(kimage_vaddr)
+        .popsection
 
 /*
  * end early head section, begin head code that is also used for
@@ -798,7 +810,7 @@ SYM_FUNC_START_LOCAL(__primary_switch)
 	adrp	x2, init_idmap_pg_dir
 	bl	__enable_mmu
 #ifdef CONFIG_RELOCATABLE
-	adrp	x23, KERNEL_START
+	adrp	x23, __PHYS_OFFSET
 	and	x23, x23, MIN_KIMG_ALIGN - 1
 #ifdef CONFIG_RANDOMIZE_BASE
 	mov	x0, x22
@@ -820,6 +832,6 @@ SYM_FUNC_START_LOCAL(__primary_switch)
 	bl	__relocate_kernel
 #endif
 	ldr	x8, =__primary_switched
-	adrp	x0, KERNEL_START		// __pa(KERNEL_START)
+	adrp	x0, __PHYS_OFFSET
 	br	x8
 SYM_FUNC_END(__primary_switch)

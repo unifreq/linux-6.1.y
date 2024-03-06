@@ -11,6 +11,7 @@
 # Copyright (C) 1995-2001 by Russell King
 
 LDFLAGS_vmlinux	:=--no-undefined -X
+CPPFLAGS_vmlinux.lds = -DTEXT_OFFSET=$(TEXT_OFFSET)
 
 ifeq ($(CONFIG_RELOCATABLE), y)
 # Pass --no-apply-dynamic-relocs to restore pre-binutils-2.27 behaviour
@@ -132,6 +133,10 @@ ifeq ($(CONFIG_DYNAMIC_FTRACE_WITH_REGS),y)
   KBUILD_CPPFLAGS += -DCC_USING_PATCHABLE_FUNCTION_ENTRY
   CC_FLAGS_FTRACE := -fpatchable-function-entry=2
 endif
+
+# The byte offset of the kernel image in RAM from the start of RAM.
+TEXT_OFFSET := 0x01080000
+export TEXT_OFFSET
 
 ifeq ($(CONFIG_KASAN_SW_TAGS), y)
 KASAN_SHADOW_SCALE_SHIFT := 4
