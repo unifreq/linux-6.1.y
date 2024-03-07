@@ -85,7 +85,7 @@
 			+ EARLY_PGDS((vstart), (vend), add) 	/* each PGDIR needs a next level page table */	\
 			+ EARLY_PUDS((vstart), (vend), add)	/* each PUD needs a next level page table */	\
 			+ EARLY_PMDS((vstart), (vend), add))	/* each PMD needs a next level page table */
-#define INIT_DIR_SIZE (PAGE_SIZE * EARLY_PAGES(KIMAGE_VADDR, _end, EARLY_KASLR))
+#define INIT_DIR_SIZE (PAGE_SIZE * EARLY_PAGES(KIMAGE_VADDR + TEXT_OFFSET, _end, EARLY_KASLR))
 
 /* the initial ID map may need two extra pages if it needs to be extended */
 #if VA_BITS < 48
