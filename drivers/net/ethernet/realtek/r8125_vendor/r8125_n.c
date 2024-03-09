@@ -43,6 +43,7 @@
 #include <linux/etherdevice.h>
 #include <linux/delay.h>
 #include <linux/mii.h>
+#include <linux/of.h>
 #include <linux/if_vlan.h>
 #include <linux/crc32.h>
 #include <linux/interrupt.h>
@@ -13626,6 +13627,23 @@ rtl8125_setup_mqs_reg(struct rtl8125_private *tp)
                 tp->imr_reg[i] = (u16)(IMR1_8125 + (i - 1) * 4);
 }
 
+static int
+rtl8125_led_configuration(struct rtl8125_private *tp)
+{
+        u32 led_data;
+        int ret;
+
+        ret = of_property_read_u32(tp->pci_dev->dev.of_node,
+                                  "realtek,led-data", &led_data);
+
+        if (ret)
+                return ret;
+
+        RTL_W16(tp, CustomLED, led_data);
+
+        return 0;
+}
+
 static void
 rtl8125_init_software_variable(struct net_device *dev)
 {
@@ -14259,6 +14277,8 @@ rtl8125_init_software_variable(struct net_device *dev)
                 tp->rtl8125_rx_config |= EnableRxDescV3;
         else if (tp->InitRxDescType == RX_DESC_RING_TYPE_4)
                 tp->rtl8125_rx_config &= ~EnableRxDescV4_1;
+
+        rtl8125_led_configuration(tp);
 
         tp->NicCustLedValue = RTL_R16(tp, CustomLED);
 
