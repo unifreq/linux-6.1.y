@@ -2,10 +2,10 @@
 /*
 ################################################################################
 #
-# r8168 is the Linux device driver released for Realtek Gigabit Ethernet
+# r8125 is the Linux device driver released for Realtek 2.5/5 Gigabit Ethernet
 # controllers with PCI-Express interface.
 #
-# Copyright(c) 2022 Realtek Semiconductor Corp. All rights reserved.
+# Copyright(c) 2023 Realtek Semiconductor Corp. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the Free
@@ -41,9 +41,12 @@ enum rtl8125_rss_register_content {
         RSS_CTRL_IPV4_SUPP  = (1 << 1),
         RSS_CTRL_TCP_IPV6_SUPP  = (1 << 2),
         RSS_CTRL_IPV6_SUPP  = (1 << 3),
+        RSS_CTRL_IPV6_EXT_SUPP  = (1 << 4),
+        RSS_CTRL_TCP_IPV6_EXT_SUPP  = (1 << 5),
         RSS_HALF_SUPP  = (1 << 7),
         RSS_CTRL_UDP_IPV4_SUPP  = (1 << 11),
         RSS_CTRL_UDP_IPV6_SUPP  = (1 << 12),
+        RSS_CTRL_UDP_IPV6_EXT_SUPP  = (1 << 13),
         RSS_QUAD_CPU_EN  = (1 << 16),
         RSS_HQ_Q_SUP_R  = (1 << 31),
 };
@@ -57,25 +60,21 @@ static int rtl8125_get_rss_hash_opts(struct rtl8125_private *tp,
         switch (cmd->flow_type) {
         case TCP_V4_FLOW:
                 cmd->data |= RXH_L4_B_0_1 | RXH_L4_B_2_3;
-        /* fallthrough */
-		fallthrough;
+                fallthrough;
         case UDP_V4_FLOW:
                 if (tp->rss_flags & RTL_8125_RSS_FLAG_HASH_UDP_IPV4)
                         cmd->data |= RXH_L4_B_0_1 | RXH_L4_B_2_3;
-        /* fallthrough */
-		fallthrough;
+                fallthrough;
         case IPV4_FLOW:
                 cmd->data |= RXH_IP_SRC | RXH_IP_DST;
                 break;
         case TCP_V6_FLOW:
                 cmd->data |= RXH_L4_B_0_1 | RXH_L4_B_2_3;
-        /* fallthrough */
-		fallthrough;
+                fallthrough;
         case UDP_V6_FLOW:
                 if (tp->rss_flags & RTL_8125_RSS_FLAG_HASH_UDP_IPV6)
                         cmd->data |= RXH_L4_B_0_1 | RXH_L4_B_2_3;
-        /* fallthrough */
-		fallthrough;
+                fallthrough;
         case IPV6_FLOW:
                 cmd->data |= RXH_IP_SRC | RXH_IP_DST;
                 break;
@@ -92,7 +91,7 @@ int rtl8125_get_rxnfc(struct net_device *dev, struct ethtool_rxnfc *cmd,
         struct rtl8125_private *tp = netdev_priv(dev);
         int ret = -EOPNOTSUPP;
 
-        //netif_info(tp, drv, tp->dev, "rss get rxnfc\n");
+        netif_info(tp, drv, tp->dev, "rss get rxnfc\n");
 
         if (!(dev->features & NETIF_F_RXHASH))
                 return ret;
@@ -135,13 +134,16 @@ static int _rtl8125_set_rss_hash_opt(struct rtl8125_private *tp)
         rss_ctrl |= RSS_CTRL_TCP_IPV4_SUPP
                     | RSS_CTRL_IPV4_SUPP
                     | RSS_CTRL_IPV6_SUPP
-                    | RSS_CTRL_TCP_IPV6_SUPP;
+                    | RSS_CTRL_IPV6_EXT_SUPP
+                    | RSS_CTRL_TCP_IPV6_SUPP
+                    | RSS_CTRL_TCP_IPV6_EXT_SUPP;
 
         if (rss_flags & RTL_8125_RSS_FLAG_HASH_UDP_IPV4)
                 rss_ctrl |= RSS_CTRL_UDP_IPV4_SUPP;
 
         if (rss_flags & RTL_8125_RSS_FLAG_HASH_UDP_IPV6)
-                rss_ctrl |= RSS_CTRL_UDP_IPV6_SUPP;
+                rss_ctrl |= RSS_CTRL_UDP_IPV6_SUPP |
+                            RSS_CTRL_UDP_IPV6_EXT_SUPP;
 
         hash_mask_len = ilog2(rtl8125_rss_indir_tbl_entries(tp));
         hash_mask_len &= (BIT_0 | BIT_1 | BIT_2);
@@ -243,16 +245,20 @@ static int rtl8125_set_rss_hash_opt(struct rtl8125_private *tp,
                 rss_ctrl |= RSS_CTRL_TCP_IPV4_SUPP
                             | RSS_CTRL_IPV4_SUPP
                             | RSS_CTRL_IPV6_SUPP
-                            | RSS_CTRL_TCP_IPV6_SUPP;
+                            | RSS_CTRL_IPV6_EXT_SUPP
+                            | RSS_CTRL_TCP_IPV6_SUPP
+                            | RSS_CTRL_TCP_IPV6_EXT_SUPP;
 
                 rss_ctrl &= ~(RSS_CTRL_UDP_IPV4_SUPP |
-                              RSS_CTRL_UDP_IPV6_SUPP);
+                              RSS_CTRL_UDP_IPV6_SUPP |
+                              RSS_CTRL_UDP_IPV6_EXT_SUPP);
 
                 if (rss_flags & RTL_8125_RSS_FLAG_HASH_UDP_IPV4)
                         rss_ctrl |= RSS_CTRL_UDP_IPV4_SUPP;
 
                 if (rss_flags & RTL_8125_RSS_FLAG_HASH_UDP_IPV6)
-                        rss_ctrl |= RSS_CTRL_UDP_IPV6_SUPP;
+                        rss_ctrl |= RSS_CTRL_UDP_IPV6_SUPP |
+                                    RSS_CTRL_UDP_IPV6_EXT_SUPP;
 
                 RTL_W32(tp, RSS_CTRL_8125, rss_ctrl);
         }
@@ -335,7 +341,7 @@ int rtl8125_get_rxfh(struct net_device *dev, u32 *indir, u8 *key,
                 rtl8125_get_reta(tp, indir);
 
         if (key)
-                memcpy(key, tp->rss_key, rtl8125_get_rxfh_key_size(dev));
+                memcpy(key, tp->rss_key, RTL8125_RSS_KEY_SIZE);
 
         return 0;
 }
@@ -410,7 +416,7 @@ int rtl8125_set_rxfh(struct net_device *dev, const u32 *indir,
 
         /* Fill out the rss hash key */
         if (key)
-                memcpy(tp->rss_key, key, rtl8125_get_rxfh_key_size(dev));
+                memcpy(tp->rss_key, key, RTL8125_RSS_KEY_SIZE);
 
         rtl8125_store_reta(tp);
 
@@ -419,7 +425,6 @@ int rtl8125_set_rxfh(struct net_device *dev, const u32 *indir,
         return 0;
 }
 
-#if 0
 static u32 rtl8125_get_rx_desc_hash(struct rtl8125_private *tp,
                                     struct RxDescV3 *descv3)
 {
@@ -450,7 +455,6 @@ void rtl8125_rx_hash(struct rtl8125_private *tp,
                      (RTL8125_RXS_RSS_L4_TYPE_MASK & rss_header_info) ?
                      PKT_HASH_TYPE_L4 : PKT_HASH_TYPE_L3);
 }
-#endif
 
 void rtl8125_disable_rss(struct rtl8125_private *tp)
 {

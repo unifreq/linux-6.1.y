@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: GPL-2.0-only
 ################################################################################
 #
-# r8125 is the Linux device driver released for Realtek 2.5Gigabit Ethernet
+# r8125 is the Linux device driver released for Realtek 2.5/5 Gigabit Ethernet
 # controllers with PCI-Express interface.
 #
-# Copyright(c) 2022 Realtek Semiconductor Corp. All rights reserved.
+# Copyright(c) 2023 Realtek Semiconductor Corp. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the Free
@@ -30,7 +30,10 @@
 #  US6,570,884, US6,115,776, and US6,327,625.
 ################################################################################
 
-# Modify by flippy (flippy@sina.com) 2022-10-01
+# Modify by flippy(flippy@sina.com) 2024-03-08
+
+ENABLE_LIB_SUPPORT = n
+ENABLE_RX_PACKET_FRAGMENT = n
 
 obj-$(CONFIG_R8125) := r8125.o
 r8125-objs := r8125_n.o rtl_eeprom.o rtltool.o
@@ -64,12 +67,16 @@ ifeq ($(CONFIG_R8125_ASPM), y)
 	EXTRA_CFLAGS += -DCONFIG_ASPM
 endif
 
-ifeq ($(CONFIG_R8125_S5WOL), y)
-	EXTRA_CFLAGS += -DENABLE_S5WOL
-endif
+ifeq ($(CONFIG_R8125_WOL_SUPPORT), y)
+	ifeq ($(CONFIG_R8125_S5WOL), y)
+		EXTRA_CFLAGS += -DENABLE_S5WOL
+	endif
 
-ifeq ($(CONFIG_R8125_S5_KEEP_CURR_MAC), y)
-	EXTRA_CFLAGS += -DENABLE_S5_KEEP_CURR_MAC
+	ifeq ($(CONFIG_R8125_S5_KEEP_CURR_MAC), y)
+		EXTRA_CFLAGS += -DENABLE_S5_KEEP_CURR_MAC
+	endif
+else
+	EXTRA_CFLAGS += -DDISABLE_PM_SUPPORT
 endif
 
 ifeq ($(CONFIG_R8125_EEE), y)
@@ -85,7 +92,7 @@ ifeq ($(CONFIG_R8125_TX_NO_CLOSE), y)
 endif
 
 ifeq ($(CONFIG_R8125_MULTI_MSIX_VECTOR), y)
-	ifeq ($(CONFIG_R8125_MULTIPLE_RX_QUEUE), y)
+	ifeq ($(CONFIG_R8125_RSS_SUPPORT), y)
 		r8125-objs += r8125_rss.o
 		EXTRA_CFLAGS += -DENABLE_RSS_SUPPORT
 	endif
@@ -104,7 +111,6 @@ ifeq ($(CONFIG_R8125_PTP_SUPPORT), y)
 	endif
 endif
 
-ENABLE_LIB_SUPPORT = n
 ifeq ($(ENABLE_LIB_SUPPORT), y)
 	r8125-objs += r8125_lib.o
 	EXTRA_CFLAGS += -DENABLE_LIB_SUPPORT
@@ -115,6 +121,14 @@ ifeq ($(CONFIG_R8125_USE_FIRMWARE_FILE), y)
 	EXTRA_CFLAGS += -DENABLE_USE_FIRMWARE_FILE
 endif
 
-ifneq ($(CONFIG_R8125_PM_SUPPORT), y)
-	EXTRA_CFLAGS += -DDISABLE_PM_SUPPORT
+ifeq ($(CONFIG_R8125_DOUBLE_VLAN), y)
+	EXTRA_CFLAGS += -DENABLE_DOUBLE_VLAN
+endif
+
+ifeq ($(CONFIG_R8125_PAGE_REUSE), y)
+	EXTRA_CFLAGS += -DENABLE_PAGE_REUSE
+endif
+
+ifeq ($(ENABLE_RX_PACKET_FRAGMENT), y)
+	EXTRA_CFLAGS += -DENABLE_RX_PACKET_FRAGMENT
 endif
