@@ -32,22 +32,20 @@
 
 		power {
 			label = "RED";
-			gpios = <&r_pio 1 0 GPIO_ACTIVE_LOW>;
-			default-state = "on";
+			gpios = <&r_pio 1 0 GPIO_ACTIVE_LOW>; /* PM0 */
+			linux,default-trigger = "default-on";
 		};
 
 		link {
 			label = "BLUE";
 			gpios = <&r_pio 1 1 GPIO_ACTIVE_LOW>;
-			linux,default-trigger = "stmmac-0:01:link";
-			default-state = "off";
+			linux,default-trigger = "stmmac-0:01:link"; /* PM1 */
 		};
 
 		disk {
 			label = "GREEN";
-			gpios = <&r_pio 1 2 GPIO_ACTIVE_LOW>;
+			gpios = <&r_pio 1 2 GPIO_ACTIVE_LOW>; /* PM2 */
 			linux,default-trigger = "mmc0";
-			default-state = "off";
 		};
 	};
 
@@ -68,15 +66,6 @@
 		regulator-always-on;
 		regulator-boot-on;
 		vin-supply = <&reg_vcc12v>;
-	};
-
-	reg_dummy_vcc_3v3: dummy-vcc-3v3 {
-		compatible = "regulator-fixed";
-		regulator-name = "dummy-vcc-3v3";
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		regulator-always-on;
-		regulator-boot-on;
 	};
 
 	reg_usb_vbus: vbus {
@@ -125,7 +114,7 @@
 
 &gpu {
 	mali-supply = <&reg_dcdcc>;
-	status = "disabled";
+	status = "okay";
 };
 
 &hdmi {
@@ -203,11 +192,9 @@
 };
 
 &pio {
-	vcc-pb-supply = <&reg_cldo1>;
-	vcc-pc-supply = <&reg_bldo2>;
-	vcc-pd-supply = <&reg_cldo1>;
-	vcc-pg-supply = <&reg_cldo3>;
-	vcc-ph-supply = <&reg_cldo1>;
+	vcc-pc-supply = <&reg_bldo2>; // 1v8
+	vcc-pd-supply = <&reg_cldo1>; // 3v3
+	vcc-pg-supply = <&reg_cldo3>; // 3v3
 };
 
 &r_pio {
@@ -215,11 +202,13 @@
 	 * PL0 and PL1 are used for PMIC I2C
 	 * don't enable the pl-supply else
 	 * it will fail at boot
-	 *
-	 * vcc-pl-supply = <&reg_aldo1>;
 	 */
-	vcc-pl-supply = <&reg_dummy_vcc_3v3>;
-	vcc-pm-supply = <&reg_cldo3>;
+	vcc-pm-supply = <&reg_cldo3>; // 3v3
+
+	led_pins: led-pins {
+		pins = "PM0", "PM1", "PM2";
+		function = "gpio_out";
+	};
 };
 
 &r_i2c {
