@@ -508,6 +508,8 @@ flowoffload_tg(struct sk_buff *skb, const struct xt_action_param *par)
 	if (!nf_ct_is_confirmed(ct))
 		return XT_CONTINUE;
 
+	dir = CTINFO2DIR(ctinfo);
+
 	devs[dir] = xt_out(par);
 	devs[!dir] = xt_in(par);
 
@@ -516,8 +518,6 @@ flowoffload_tg(struct sk_buff *skb, const struct xt_action_param *par)
 
 	if (test_and_set_bit(IPS_OFFLOAD_BIT, &ct->status))
 		return XT_CONTINUE;
-
-	dir = CTINFO2DIR(ctinfo);
 
 	if (xt_flowoffload_route(skb, ct, par, &route, dir, devs) < 0)
 		goto err_flow_route;
