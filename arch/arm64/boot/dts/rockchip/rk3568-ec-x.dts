@@ -45,38 +45,27 @@
 		};
 	};
 
-	keys: keys {
-		compatible = "gpio-keys";
-		pinctrl-0 = <&reset_button_pin>;
-		pinctrl-names = "default";
-
-		reset {
-			label = "reset";
-			gpios = <&gpio0 RK_PA0 GPIO_ACTIVE_LOW>;
-			linux,code = <KEY_RESTART>;
-			debounce-interval = <50>;
-		};
-	};
-
 	leds: leds {
 		compatible = "gpio-leds";
 		pinctrl-names = "default";
-		pinctrl-0 = <&led_net_en>, <&led_sata_en>, <&led_work_en>;
+		pinctrl-0 = <&led_green_en>, <&led_red_en>, <&led_blue_en>;
 
-		led_work: work {
-			label = "blue:work";
+		led_green: led-green {
+			label = "green:led1";
+			gpios = <&gpio3 RK_PA5 GPIO_ACTIVE_HIGH>;
+		};
+
+		led_red: led-red {
+			label = "red:led2";
+			gpios = <&gpio3 RK_PA7 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "heartbeat";
+		};
+
+		led_blue: led-blue {
+			label = "blue:led3";
 			gpios = <&gpio3 RK_PB0 GPIO_ACTIVE_HIGH>;
 		};
 
-		led_sata: sata {
-			label = "blue:sata";
-			gpios = <&gpio3 RK_PA7 GPIO_ACTIVE_HIGH>;
-		};
-
-		led_net: net {
-			label = "blue:net";
-			gpios = <&gpio3 RK_PA5 GPIO_ACTIVE_HIGH>;
-		};
 	};
 
 	vcc12v_dcin: vcc12v-dcin-regulator {
@@ -626,23 +615,17 @@
 };
 
 &pinctrl {
-	button {
-		reset_button_pin: reset-button-pin {
-			rockchip,pins = <0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_up>;
-		};
-	};
-
 	leds {
-		led_work_en: led-work-en {
-			rockchip,pins = <3 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
+		led_green_en: led-green-en {
+			rockchip,pins = <3 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
-		led_sata_en: led-user-en {
+		led_red_en: led-red-en {
 			rockchip,pins = <3 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
-		led_net_en: led-net-en {
-			rockchip,pins = <3 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
+		led_blue_en: led-blue-en {
+			rockchip,pins = <3 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
