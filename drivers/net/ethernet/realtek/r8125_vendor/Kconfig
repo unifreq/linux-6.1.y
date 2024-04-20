@@ -1,5 +1,5 @@
 config R8125
-        tristate "Realtek 8125A/8125B/8168KB/8126A ethernet support by vendor"
+        tristate "Realtek 8125A/8125B/8125BP/8125D/8168KB ethernet support by vendor"
         depends on PCI
         select FW_LOADER
         select CRC32
@@ -9,10 +9,8 @@ config R8125
         help
           Say Y here if you have a Realtek Ethernet adapter belonging to
           the following families:
-          RTL8125A 2.5Gbps Ethernet
-          RTL8125B 2.5Gbps Ethernet
+          RTL8125A/B/BP/D 2.5Gbps Ethernet
           RTL8168KB 2.5Gbps Ethernet
-          RTL8126A 5Gbps Ethernet
 
           To compile this driver as a module, choose M here: the module
           will be called r8125.  This is recommended.
