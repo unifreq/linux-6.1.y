@@ -2705,7 +2705,7 @@ int nf_conntrack_init_start(void)
 
 	if (!nf_conntrack_htable_size) {
 		nf_conntrack_htable_size
-			= (((nr_pages << PAGE_SHIFT) / 2048)
+			= (((nr_pages << PAGE_SHIFT) / 16384)
 			   / sizeof(struct hlist_head));
 		if (BITS_PER_LONG >= 64 &&
 		    nr_pages > (4 * (1024 * 1024 * 1024 / PAGE_SIZE)))
@@ -2823,10 +2823,6 @@ int nf_conntrack_init_net(struct net *net)
 	nf_conntrack_tstamp_pernet_init(net);
 	nf_conntrack_ecache_pernet_init(net);
 	nf_conntrack_proto_pernet_init(net);
-
-#ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
-	ATOMIC_INIT_NOTIFIER_HEAD(&net->ct.nf_conntrack_chain);
-#endif
 
 	return 0;
 
