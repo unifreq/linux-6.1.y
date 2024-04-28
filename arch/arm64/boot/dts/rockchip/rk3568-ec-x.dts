@@ -717,6 +717,7 @@
 
 &usb_host0_xhci {
 	status = "okay";
+	dr_mode = "host";
 	phys = <&usb2phy0_otg>;
 	phy-names = "usb2-phy";
 	extcon = <&usb2phy0>;
