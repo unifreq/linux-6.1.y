@@ -161,6 +161,14 @@ config NF_CONNTRACK_EVENTS
 
 	  If unsure, say `N'.
 
+config NF_CONNTRACK_CHAIN_EVENTS
+	bool "Register multiple callbacks to ct events"
+	depends on NF_CONNTRACK_EVENTS
+	help
+	  Support multiple registrations.
+
+	  If unsure, say `N'.
+
 config NF_CONNTRACK_TIMEOUT
 	bool  'Connection tracking timeout'
 	depends on NETFILTER_ADVANCED
@@ -727,7 +735,6 @@ config NF_FLOW_TABLE
 	tristate "Netfilter flow table module"
 	depends on NETFILTER_INGRESS
 	depends on NF_CONNTRACK
-	depends on NF_TABLES
 	help
 	  This option adds the flow table core infrastructure.
 
@@ -1031,6 +1038,15 @@ config NETFILTER_XT_TARGET_NOTRACK
 	depends on IP_NF_RAW || IP6_NF_RAW
 	depends on NETFILTER_ADVANCED
 	select NETFILTER_XT_TARGET_CT
+
+config NETFILTER_XT_TARGET_FLOWOFFLOAD
+	tristate '"FLOWOFFLOAD" target support'
+	depends on NF_FLOW_TABLE
+	depends on NETFILTER_INGRESS
+	help
+	  This option adds a `FLOWOFFLOAD' target, which uses the nf_flow_offload
+	  module to speed up processing of packets by bypassing the usual
+	  netfilter chains
 
 config NETFILTER_XT_TARGET_RATEEST
 	tristate '"RATEEST" target support'
