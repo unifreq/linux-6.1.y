@@ -267,7 +267,8 @@ static int rockchip_efuse_probe(struct platform_device *pdev)
 	if (!efuse)
 		return -ENOMEM;
 
-	efuse->base = devm_platform_get_and_ioremap_resource(pdev, 0, &res);
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	efuse->base = devm_ioremap_resource(dev, res);
 	if (IS_ERR(efuse->base))
 		return PTR_ERR(efuse->base);
 

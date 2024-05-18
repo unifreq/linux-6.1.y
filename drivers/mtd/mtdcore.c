@@ -28,7 +28,6 @@
 #include <linux/leds.h>
 #include <linux/debugfs.h>
 #include <linux/nvmem-provider.h>
-#include <linux/root_dev.h>
 
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
@@ -552,22 +551,22 @@ static void mtd_check_of_node(struct mtd_info *mtd)
 	struct device_node *partitions, *parent_dn, *mtd_dn = NULL;
 	const char *pname, *prefix = "partition-";
 	int plen, mtd_name_len, offset, prefix_len;
+	struct mtd_info *parent;
+	bool found = false;
 
 	/* Check if MTD already has a device node */
-	if (mtd_get_of_node(mtd))
+	if (dev_of_node(&mtd->dev))
 		return;
 
+	/* Check if a partitions node exist */
 	if (!mtd_is_partition(mtd))
 		return;
-
-	parent_dn = of_node_get(mtd_get_of_node(mtd->parent));
+	parent = mtd->parent;
+	parent_dn = of_node_get(dev_of_node(&parent->dev));
 	if (!parent_dn)
 		return;
 
-	if (mtd_is_partition(mtd->parent))
-		partitions = of_node_get(parent_dn);
-	else
-		partitions = of_get_child_by_name(parent_dn, "partitions");
+	partitions = of_get_child_by_name(parent_dn, "partitions");
 	if (!partitions)
 		goto exit_parent;
 
@@ -576,26 +575,34 @@ static void mtd_check_of_node(struct mtd_info *mtd)
 
 	/* Search if a partition is defined with the same name */
 	for_each_child_of_node(partitions, mtd_dn) {
+		offset = 0;
+
 		/* Skip partition with no/wrong prefix */
-		if (!of_node_name_prefix(mtd_dn, prefix))
+		if (!of_node_name_prefix(mtd_dn, "partition-"))
 			continue;
 
 		/* Label have priority. Check that first */
-		if (!of_property_read_string(mtd_dn, "label", &pname)) {
-			offset = 0;
-		} else {
-			pname = mtd_dn->name;
+		if (of_property_read_string(mtd_dn, "label", &pname)) {
+			of_property_read_string(mtd_dn, "name", &pname);
 			offset = prefix_len;
 		}
 
 		plen = strlen(pname) - offset;
 		if (plen == mtd_name_len &&
 		    !strncmp(mtd->name, pname + offset, plen)) {
-			mtd_set_of_node(mtd, mtd_dn);
+			found = true;
 			break;
 		}
 	}
 
+	if (!found)
+		goto exit_partitions;
+
+	/* Set of_node only for nvmem */
+	if (of_device_is_compatible(mtd_dn, "nvmem-cells"))
+		mtd_set_of_node(mtd, mtd_dn);
+
+exit_partitions:
 	of_node_put(partitions);
 exit_parent:
 	of_node_put(parent_dn);
@@ -738,17 +745,6 @@ int add_mtd_device(struct mtd_info *mtd)
 		not->add(mtd);
 
 	mutex_unlock(&mtd_table_mutex);
-
-	if (of_find_property(mtd_get_of_node(mtd), "linux,rootfs", NULL)) {
-		if (IS_BUILTIN(CONFIG_MTD)) {
-			pr_info("mtd: setting mtd%d (%s) as root device\n", mtd->index, mtd->name);
-			ROOT_DEV = MKDEV(MTD_BLOCK_MAJOR, mtd->index);
-		} else {
-			pr_warn("mtd: can't set mtd%d (%s) as root device - mtd must be builtin\n",
-				mtd->index, mtd->name);
-		}
-	}
-
 	/* We _know_ we aren't being removed, because
 	   our caller is still holding us here. So none
 	   of this try_ nonsense, and no bitching about it
