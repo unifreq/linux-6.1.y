@@ -139,15 +139,6 @@
 		pwms = <&pwm1 0 40000 0>;
 	};
 
-/*
-	fan0: gpio-fan {
-		#cooling-cells = <2>;
-		compatible = "gpio-fan";
-		gpio-fan,speed-map = <0 0 3000 1>;
-		gpios = <&gpio4 RK_PC6 GPIO_ACTIVE_HIGH>;
-		status = "okay";
-	};
-*/
 	// pwm3
 	ir-receiver {
 		compatible = "gpio-ir-receiver";
@@ -511,6 +502,7 @@
 
 &pcie0 {
 	ep-gpios = <&gpio4 RK_PD3 GPIO_ACTIVE_HIGH>; // sch
+	max-link-speed = <2>;
 	num-lanes = <2>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pcie_clkreqn_cpm>;
@@ -594,12 +586,11 @@
 	status = "okay";
 };
 */
-/*
 // FAN
 &pwm1 {
 	status = "okay";
 };
-*/
+
 &pwm2 {
 	status = "okay";
 };
@@ -624,8 +615,7 @@
 	sd-uhs-sdr104;
 	#address-cells = <1>;
 	#size-cells = <0>;
-	status = "disabled";
-	// status = "okay";
+	status = "okay";
 
 	brcmf: wifi@1 {
 		reg = <1>;
@@ -633,9 +623,9 @@
 		interrupt-parent = <&gpio0>;
 		interrupts = <RK_PA3 GPIO_ACTIVE_HIGH>;
 		interrupt-names = "host-wake";
+		brcm,drive-strength = <5>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&wifi_host_wake_l>;
-		status = "disabled";
 	};
 };
 
@@ -734,7 +724,7 @@
 &uart0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&uart0_xfer &uart0_cts &uart0_rts>;
-	status = "disabled";
+	status = "okay";
 
 	bluetooth {
 		compatible = "brcm,bcm43438-bt";
@@ -743,11 +733,11 @@
 		device-wakeup-gpios = <&gpio2 RK_PD2 GPIO_ACTIVE_HIGH>;
 		host-wakeup-gpios = <&gpio0 RK_PA4 GPIO_ACTIVE_HIGH>;
 		shutdown-gpios = <&gpio0 RK_PB1 GPIO_ACTIVE_HIGH>;
+		max-speed = <4000000>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&bt_host_wake_l &bt_wake_l &bt_enable_h>;
 		vbat-supply = <&vcc3v3_sys>;
 		vddio-supply = <&vcc_1v8>;
-		status = "disabled";
 	};
 };
 
@@ -803,5 +793,9 @@
 };
 
 &vopl_mmu {
+	status = "okay";
+};
+
+&iep_mmu {
 	status = "okay";
 };
