@@ -125,6 +125,7 @@ dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x96-air.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x96-air-gbit.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x96-max-plus-100m.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x96-max-plus-2101.dtb
+dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x96-max-plus-a100.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x96-max-plus.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x96-max-plus-ip1001m-2.dtb
 dtb-$(CONFIG_ARCH_MESON) += meson-sm1-x96-max-plus-ip1001m.dtb

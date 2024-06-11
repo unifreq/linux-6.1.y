@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2024 taras-filatov, unifreq.
+ */
+
+/dts-v1/;
+
+#include "meson-sm1-sei610.dts"
+
+/ {
+	compatible = "x96-max-a100", "amlogic,sm1";
+	model = "X96 MAX+ A100";
+
+	/delete-node/ memory@0;
+
+	memory@0 {
+		device_type = "memory";
+		// reg = <0x0 0x0 0x0 0x40000000>;
+		linux,usable-memory = <0x0 0x100000 0x0 0xf0800000>;
+	};
+};
