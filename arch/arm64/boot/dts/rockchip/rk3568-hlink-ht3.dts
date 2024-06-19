@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
-// Copyright (c) 2022 AmadeusGhost <amadeus@jmu.edu.cn>
-// Copyright (c) 2022 Flippy <flippy@sina.com>
+// Copyright (c) 2024 Flippy <flippy@sina.com>
 
 /dts-v1/;
 
 #include "rk3568-hlink-h66k.dts"
 
 / {
-	model = "Hlink HNAS";
-	compatible = "hlink,hnas", "rockchip,rk3568";
+	model = "Hlink HT3";
+	compatible = "hlink,ht3", "hlink,hnas", "rockchip,rk3568";
 
 	sata_pm_power: sata-pm-power {
 		compatible = "regulator-fixed";
