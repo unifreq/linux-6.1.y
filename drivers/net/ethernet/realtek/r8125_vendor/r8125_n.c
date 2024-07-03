@@ -13644,21 +13644,68 @@ rtl8125_devname_configuration(struct rtl8125_private *tp)
         return 0;
 }
 
-static int
+/*
+ * Refer to RTL8125 datasheet 5.Customizable LED Configuration
+ * Register Name	IO Address
+ * LEDSEL0		0x18
+ * LEDSEL1		0x86
+ * LEDSEL2		0x84
+ * LEDSEL3		0x96
+ * LEDFEATURE		0x94
+ *
+ * LEDSEL Bit[]		Description
+ * Bit0			Link10M
+ * Bit1			Link100M
+ * Bit3			Link1000M
+ * Bit5			Link2.5G
+ * Bit9			ACT
+ * Bit10		preboot enable
+ * Bit11		lp enable
+ * Bit12		active low/high
+ *
+ * LEDFEATURE		Description
+ * Bit0			LED Table V1/V2
+ * Bit1~3		Reserved
+ * Bit4~5		LED Blinking Duty Cycle	12.5%/ 25%/ 50%/ 75%
+ * Bit6~7		LED Blinking Freq. 240ms/160ms/80ms/Link-Speed-Dependent
+ */
+static void
 rtl8125_led_configuration(struct rtl8125_private *tp)
 {
         u32 led_data;
         int ret;
 
+	// To be compatible with the old device tree
         ret = of_property_read_u32(tp->pci_dev->dev.of_node,
                                   "realtek,led-data", &led_data);
+        if (ret == 0)
+                RTL_W16(tp, LEDSEL0, led_data & LEDSEL_MASK_8125);
 
-        if (ret)
-                return ret;
+	// The new device tree is written as follows:
+        ret = of_property_read_u32(tp->pci_dev->dev.of_node,
+                                  "r8125,led0", &led_data);
+        if (ret == 0)
+                RTL_W16(tp, LEDSEL0, led_data & LEDSEL_MASK_8125);
 
-        RTL_W16(tp, CustomLED, led_data);
+        ret = of_property_read_u32(tp->pci_dev->dev.of_node,
+                                  "r8125,led1", &led_data);
+        if (ret == 0)
+                RTL_W16(tp, LEDSEL1, led_data & LEDSEL_MASK_8125);
 
-        return 0;
+        ret = of_property_read_u32(tp->pci_dev->dev.of_node,
+                                  "r8125,led2", &led_data);
+        if (ret == 0)
+                RTL_W16(tp, LEDSEL2, led_data & LEDSEL_MASK_8125);
+
+        ret = of_property_read_u32(tp->pci_dev->dev.of_node,
+                                  "r8125,led3", &led_data);
+        if (ret == 0)
+                RTL_W16(tp, LEDSEL3, led_data & LEDSEL_MASK_8125);
+
+        ret = of_property_read_u32(tp->pci_dev->dev.of_node,
+                                  "r8125,led-feature", &led_data);
+        if (ret == 0)
+                RTL_W8(tp, LEDFEATURE, led_data & LEDFEATURE_MASK_8125);
 }
 
 static void
@@ -14296,9 +14343,9 @@ rtl8125_init_software_variable(struct net_device *dev)
                 tp->rtl8125_rx_config &= ~EnableRxDescV4_1;
 
         rtl8125_devname_configuration(tp);
-        rtl8125_led_configuration(tp);
 
-        tp->NicCustLedValue = RTL_R16(tp, CustomLED);
+        rtl8125_led_configuration(tp);
+        tp->NicCustLedValue = RTL_R16(tp, LEDSEL0);
 
         tp->wol_opts = rtl8125_get_hw_wol(tp);
         tp->wol_enabled = (tp->wol_opts) ? WOL_ENABLED : WOL_DISABLED;
