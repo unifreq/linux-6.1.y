@@ -226,12 +226,38 @@
 	mbi-ranges = <202 56>, <264 56>;
 };
 */
-/* rtl8125 1 */
+/* rtl8125b eth1 */
 &pcie2x1 {
 	reset-gpios = <&gpio1 RK_PB2 GPIO_ACTIVE_HIGH>;
 	vpcie3v3-supply = <&vcc_3v3>;
 	pinctrl-0 = <&pcie20m2_pins>; 
 	status = "okay";
+
+	pcie@0 {
+		reg = <0x00000000 0 0 0 0>;
+		#address-cells = <3>;
+		#size-cells = <2>;
+
+		rtl8125_2: pcie-eth@0,0 {
+			compatible = "pci10ec,8125";
+			label = "eth1";
+			reg = <0x000000 0 0 0 0>;
+
+			/* G+: LED0
+			 * G-: LED1
+			 * Y+: 3v3
+			 * Y-: LED2
+			 */
+			// LED0: active high, link on all speed
+			r8125,led0 = <0x102b>;
+
+			// LED1: active low, link on 100 + 1000 + 2500
+			r8125,led1 = <0x002a>;
+
+			// LED2: active low, act on all speed
+			r8125,led2 = <0x0200>;
+		};
+	};
 };
 
 &pcie30phy {
@@ -248,13 +274,39 @@
 	status = "okay";
 };
 
-/* rtl8125 2 */
+/* rtl8125b eth0 */
 &pcie3x2 {
 	num-lans = <1>;
 	reset-gpios = <&gpio2 RK_PD6 GPIO_ACTIVE_HIGH>;
 	vpcie3v3-supply = <&vcc_3v3>;
 	pinctrl-0 = <&pcie30x2m1_pins>; 
 	status = "okay";
+
+	pcie@0 {
+		reg = <0x00200000 0 0 0 0>;
+		#address-cells = <3>;
+		#size-cells = <2>;
+
+		rtl8125_1: pcie-eth@20,0 {
+			compatible = "pci10ec,8125";
+			label = "eth0";
+			reg = <0x000000 0 0 0 0>;
+
+			/* G+: LED0
+			 * G-: LED1
+			 * Y+: 3v3
+			 * Y-: LED2
+			 */
+			// LED0: active high, link on all speed
+			r8125,led0 = <0x102b>;
+
+			// LED1: active low, link on 100 + 1000 + 2500
+			r8125,led1 = <0x002a>;
+
+			// LED2: active low, act on all speed
+			r8125,led2 = <0x0200>;
+		};
+	};
 };
 
 &pwm1 {
