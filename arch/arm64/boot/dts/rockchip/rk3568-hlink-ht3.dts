@@ -655,7 +655,15 @@
 		rtl8125_1: pcie-eth@10,0 {
 			compatible = "pci10ec,8125";
 			reg = <0x000000 0 0 0 0>;
-			realtek,led-data = <0x0200>;
+			label = "eth0";
+
+			/* G+ 3v3
+			 * G- LED3: LINK on 100 + 1000 + 2500
+			 * Y+ 3v3
+			 * Y- LED2: ACT on all speed
+			 */
+			r8125,led2 = <0x0200>;
+			r8125,led3 = <0x002a>;
 		};
 	};
 };
@@ -677,7 +685,15 @@
 		rtl8125_2: pcie-eth@20,0 {
 			compatible = "pci10ec,8125";
 			reg = <0x000000 0 0 0 0>;
-			realtek,led-data = <0x0200>;
+			label = "eth1";
+
+			/* G+ 3v3
+			 * G- LED3: LINK on 100 + 1000 + 2500
+			 * Y+ 3v3
+			 * Y- LED2: ACT on all speed
+			 */
+			r8125,led2 = <0x0200>;
+			r8125,led3 = <0x002a>;
 		};
 	};
 };
