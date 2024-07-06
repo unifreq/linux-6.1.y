@@ -515,14 +515,10 @@ tcp_in_window(struct nf_conn *ct, enum ip_conntrack_dir dir,
 	struct ip_ct_tcp *state = &ct->proto.tcp;
 	struct ip_ct_tcp_state *sender = &state->seen[dir];
 	struct ip_ct_tcp_state *receiver = &state->seen[!dir];
-	const struct nf_tcp_net *tn = nf_tcp_pernet(nf_ct_net(ct));
 	__u32 seq, ack, sack, end, win, swin;
 	bool in_recv_win, seq_ok;
 	s32 receiver_offset;
 	u16 win_raw;
-
-	if (tn->tcp_no_window_check)
-		return NFCT_TCP_ACCEPT;
 
 	/*
 	 * Get the required data from the packet.
@@ -1298,7 +1294,7 @@ int nf_conntrack_tcp_packet(struct nf_conn *ct,
 		 IP_CT_TCP_FLAG_DATA_UNACKNOWLEDGED &&
 		 timeouts[new_state] > timeouts[TCP_CONNTRACK_UNACK])
 		timeout = timeouts[TCP_CONNTRACK_UNACK];
-	else if (!tn->tcp_no_window_check && ct->proto.tcp.last_win == 0 &&
+	else if (ct->proto.tcp.last_win == 0 &&
 		 timeouts[new_state] > timeouts[TCP_CONNTRACK_RETRANS])
 		timeout = timeouts[TCP_CONNTRACK_RETRANS];
 	else
@@ -1613,9 +1609,6 @@ void nf_conntrack_tcp_init_net(struct net *net)
 	 * If it's non-zero, we mark only out of window RST segments as INVALID.
 	 */
 	tn->tcp_be_liberal = 0;
-
-	/* Skip Windows Check */
-	tn->tcp_no_window_check = 0;
 
 	/* If it's non-zero, we turn off RST sequence number check */
 	tn->tcp_ignore_invalid_rst = 0;

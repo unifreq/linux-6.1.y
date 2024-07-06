@@ -26,7 +26,6 @@ struct nf_tcp_net {
 	unsigned int timeouts[TCP_CONNTRACK_TIMEOUT_MAX];
 	u8 tcp_loose;
 	u8 tcp_be_liberal;
-	u8 tcp_no_window_check;
 	u8 tcp_max_retrans;
 	u8 tcp_ignore_invalid_rst;
 #if IS_ENABLED(CONFIG_NF_FLOW_TABLE)
@@ -105,9 +104,6 @@ struct netns_ct {
 	u8			sysctl_checksum;
 
 	struct ip_conntrack_stat __percpu *stat;
-#ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
-	struct atomic_notifier_head nf_conntrack_chain;
-#endif
 	struct nf_ct_event_notifier __rcu *nf_conntrack_event_cb;
 	struct nf_ip_net	nf_ct_proto;
 #if defined(CONFIG_NF_CONNTRACK_LABELS)

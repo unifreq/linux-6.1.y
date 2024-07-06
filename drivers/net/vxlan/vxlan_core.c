@@ -1493,10 +1493,6 @@ static bool vxlan_snoop(struct net_device *dev,
 	struct vxlan_fdb *f;
 	u32 ifindex = 0;
 
-	/* Don't learn broadcast packets */
-	if (is_multicast_ether_addr(src_mac) || is_zero_ether_addr(src_mac))
-		return false;
-
 	/* Ignore packets from invalid src-address */
 	if (!is_valid_ether_addr(src_mac))
 		return true;
