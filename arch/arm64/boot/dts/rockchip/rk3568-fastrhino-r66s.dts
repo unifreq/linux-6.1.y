@@ -24,3 +24,11 @@
 	vqmmc-supply = <&vccio_sd>;
 	status = "okay";
 };
+
+&rtl8125_1 {
+	label = "eth0";
+};
+
+&rtl8125_2 {
+	label = "eth1";
+};

@@ -400,7 +400,6 @@
 
 		rtl8125_1: pcie-eth@10,0 {
 			compatible = "pci10ec,8125";
-			label = "eth0";
 
 			reg = <0x000000 0 0 0 0>;
 			/* G+ 3v3
@@ -428,7 +427,6 @@
 		rtl8125_2: pcie-eth@20,0 {
 			compatible = "pci10ec,8125";
 			reg = <0x000000 0 0 0 0>;
-			label = "eth1";
 
 			/* G+ 3v3
 			 * G- LED1: LINK on 100 + 1000 + 2500

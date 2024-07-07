@@ -96,3 +96,11 @@
 	vqmmc-supply = <&vcc_1v8>;
 	status = "okay";
 };
+
+&rtl8125_1 {
+	label = "eth2";
+};
+
+&rtl8125_2 {
+	label = "eth3";
+};
