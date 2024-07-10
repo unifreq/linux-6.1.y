@@ -251,11 +251,11 @@
 			// LED0: active high, link on all speed
 			r8125,led0 = <0x102b>;
 
-			// LED1: active low, link on 100 + 1000 + 2500
-			r8125,led1 = <0x002a>;
+			// LED1: active low, act on all speed
+			r8125,led1 = <0x0200>;
 
-			// LED2: active low, act on all speed
-			r8125,led2 = <0x0200>;
+			// LED2: active low, link on 100 + 1000 + 2500
+			r8125,led2 = <0x002a>;
 		};
 	};
 };
@@ -300,11 +300,11 @@
 			// LED0: active high, link on all speed
 			r8125,led0 = <0x102b>;
 
-			// LED1: active low, link on 100 + 1000 + 2500
-			r8125,led1 = <0x002a>;
+			// LED1: active low, act on all speed
+			r8125,led1 = <0x0200>;
 
-			// LED2: active low, act on all speed
-			r8125,led2 = <0x0200>;
+			// LED2: active low, link on 100 + 1000 + 2500
+			r8125,led2 = <0x002a>;
 		};
 	};
 };
