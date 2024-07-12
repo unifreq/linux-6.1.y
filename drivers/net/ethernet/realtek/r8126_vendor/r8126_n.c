@@ -11612,6 +11612,19 @@ rtl8126_setup_mqs_reg(struct rtl8126_private *tp)
 }
 
 static void
+rtl8126_devname_configuration(struct rtl8126_private *tp)
+{
+        const char *devname;
+        int ret;
+
+        ret = of_property_read_string(tp->pci_dev->dev.of_node,
+                                      "label", &devname);
+
+        if (ret == 0)
+                strlcpy(tp->dev->name, devname, IFNAMSIZ);
+}
+
+static void
 rtl8126_init_software_variable(struct net_device *dev)
 {
         struct rtl8126_private *tp = netdev_priv(dev);
@@ -11982,6 +11995,8 @@ rtl8126_init_software_variable(struct net_device *dev)
         tp->rtl8126_rx_config = rtl_chip_info[tp->chipset].RCR_Cfg;
         if (tp->InitRxDescType == RX_DESC_RING_TYPE_3)
                 tp->rtl8126_rx_config |= EnableRxDescV3;
+
+        rtl8126_devname_configuration(tp);
 
         tp->NicCustLedValue = RTL_R16(tp, CustomLED);
 
