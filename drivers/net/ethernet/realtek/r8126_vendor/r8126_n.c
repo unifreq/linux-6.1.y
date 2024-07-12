@@ -14554,6 +14554,7 @@ rtl8126_get_l1off_cap_bits(struct rtl8126_private *tp)
         case CFG_METHOD_2:
         case CFG_METHOD_3:
                 l1offCapBits |= (BIT_2 | BIT_3);
+		fallthrough;
         default:
                 break;
         }

@@ -537,6 +537,7 @@ static int rtl8126_set_tstamp(struct net_device *netdev, struct ifreq *ifr)
         switch (config.tx_type) {
         case HWTSTAMP_TX_ON:
                 hwtstamp = 1;
+		fallthrough;
         case HWTSTAMP_TX_OFF:
                 break;
         case HWTSTAMP_TX_ONESTEP_SYNC:
@@ -556,6 +557,7 @@ static int rtl8126_set_tstamp(struct net_device *netdev, struct ifreq *ifr)
         case HWTSTAMP_FILTER_PTP_V2_L4_DELAY_REQ:
                 config.rx_filter = HWTSTAMP_FILTER_PTP_V2_EVENT;
                 hwtstamp = 1;
+		fallthrough;
         case HWTSTAMP_FILTER_NONE:
                 break;
         default:
