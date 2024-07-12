@@ -115,6 +115,8 @@ config R8169
 
 source "drivers/net/ethernet/realtek/r8125_vendor/Kconfig"
 
+source "drivers/net/ethernet/realtek/r8126_vendor/Kconfig"
+
 source "drivers/net/ethernet/realtek/r8168_vendor/Kconfig"
 
 endif # NET_VENDOR_REALTEK
