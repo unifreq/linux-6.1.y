@@ -110,7 +110,6 @@ struct ubi_volume_info {
 	int name_len;
 	const char *name;
 	dev_t cdev;
-	struct device *dev;
 };
 
 /**
