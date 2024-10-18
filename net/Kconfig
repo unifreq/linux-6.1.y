@@ -26,12 +26,6 @@ menuconfig NET
 
 if NET
 
-config ETHERNET_PACKET_MANGLE
-	bool
-	help
-	  This option can be selected by phy drivers that need to mangle
-	  packets going in or out of an ethernet device.
-
 config WANT_COMPAT_NETLINK_MESSAGES
 	bool
 	help
@@ -463,9 +457,6 @@ config FAILOVER
 	  VF as an accelerated low latency datapath. It also allows live
 	  migration of VMs with direct attached VFs by failing over to the
 	  paravirtual datapath when the VF is unplugged.
-
-config SHORTCUT_FE
-	bool "Enables kernel network stack path for Shortcut  Forwarding Engine"
 
 config ETHTOOL_NETLINK
 	bool "Netlink interface for ethtool"

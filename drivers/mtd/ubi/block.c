@@ -452,7 +452,7 @@ int ubiblock_create(struct ubi_volume_info *vi)
 	list_add_tail(&dev->list, &ubiblock_devices);
 
 	/* Must be the last step: anyone can call file ops from now on */
-	ret = device_add_disk(vi->dev, dev->gd, NULL);
+	ret = add_disk(dev->gd);
 	if (ret)
 		goto out_destroy_wq;
 

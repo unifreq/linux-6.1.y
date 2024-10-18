@@ -9,8 +9,7 @@
 
 #ifndef __AARCH64EB__
 
-#include <linux/bitops.h>
-#include <linux/wordpart.h>
+#include <linux/kernel.h>
 
 struct word_at_a_time {
 	const unsigned long one_bits, high_bits;

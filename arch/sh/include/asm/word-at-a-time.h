@@ -5,8 +5,6 @@
 #ifdef CONFIG_CPU_BIG_ENDIAN
 # include <asm-generic/word-at-a-time.h>
 #else
-#include <linux/bitops.h>
-#include <linux/wordpart.h>
 /*
  * Little-endian version cribbed from x86.
  */
