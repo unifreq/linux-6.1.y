@@ -271,7 +271,13 @@ struct net_bridge_fdb_entry {
 	unsigned long			updated ____cacheline_aligned_in_smp;
 	unsigned long			used;
 
-	struct rcu_head			rcu;
+	union {
+		struct {
+			struct hlist_head		offload_in;
+			struct hlist_head		offload_out;
+		};
+		struct rcu_head			rcu;
+	};
 };
 
 struct net_bridge_fdb_flush_desc {
@@ -353,6 +359,12 @@ struct net_bridge_mdb_entry {
 	struct rcu_head			rcu;
 };
 
+struct net_bridge_port_offload {
+	struct rhashtable		rht;
+	struct work_struct		gc_work;
+	bool				enabled;
+};
+
 struct net_bridge_port {
 	struct net_bridge		*br;
 	struct net_device		*dev;
@@ -414,6 +426,7 @@ struct net_bridge_port {
 	u16				backup_redirected_cnt;
 
 	struct bridge_stp_xstats	stp_xstats;
+	struct net_bridge_port_offload	offload;
 };
 
 #define kobj_to_brport(obj)	container_of(obj, struct net_bridge_port, kobj)
@@ -531,6 +544,9 @@ struct net_bridge {
 	struct kobject			*ifobj;
 	u32				auto_cnt;
 
+	u32				offload_cache_size;
+	u32				offload_cache_reserved;
+
 #ifdef CONFIG_NET_SWITCHDEV
 	/* Counter used to make sure that hardware domains get unique
 	 * identifiers in case a bridge spans multiple switchdev instances.
@@ -566,6 +582,10 @@ struct br_input_skb_cb {
 #ifdef CONFIG_NETFILTER_FAMILY_BRIDGE
 	u8 br_netfilter_broute:1;
 #endif
+	u8 offload:1;
+	u8 input_vlan_present:1;
+	u16 input_vlan_tag;
+	int input_ifindex;
 
 #ifdef CONFIG_NET_SWITCHDEV
 	/* Set if TX data plane offloading is used towards at least one

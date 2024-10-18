@@ -44,6 +44,12 @@ config LED_TRIGGER_PHY
 		<Speed in megabits>Mbps OR <Speed in gigabits>Gbps OR link
 		for any speed known to the PHY.
 
+config PHYLIB_LEDS
+	def_bool OF
+	depends on LEDS_CLASS=y || LEDS_CLASS=PHYLIB
+	help
+	  When LED class support is enabled, phylib can automatically
+	  probe LED setting from device tree.
 
 config FIXED_PHY
 	tristate "MDIO Bus/PHY emulation with fixed speed/link PHYs"
@@ -63,10 +69,15 @@ config SFP
 
 comment "MII PHY device drivers"
 
-config AMD_PHY
-	tristate "AMD PHYs"
+config AIR_EN8811H_PHY
+	tristate "Airoha EN8811H 2.5 Gigabit PHY"
 	help
-	  Currently supports the am79c874
+	  Currently supports the Airoha EN8811H PHY.
+
+config AMD_PHY
+	tristate "AMD and Altima PHYs"
+	help
+	  Currently supports the AMD am79c874 and Altima AC101L.
 
 config MESON_GXL_PHY
 	tristate "Amlogic Meson GXL Internal PHY"
@@ -90,10 +101,7 @@ config ADIN1100_PHY
 	  Currently supports the:
 	  - ADIN1100 - Robust,Industrial, Low Power 10BASE-T1L Ethernet PHY
 
-config AQUANTIA_PHY
-	tristate "Aquantia PHYs"
-	help
-	  Currently supports the Aquantia AQ1202, AQ2104, AQR105, AQR405
+source "drivers/net/phy/aquantia/Kconfig"
 
 config AX88796B_PHY
 	tristate "Asix PHYs"
@@ -265,7 +273,7 @@ config MOTORCOMM_PHY
 	tristate "Motorcomm PHYs"
 	help
 	  Enables support for Motorcomm network PHYs.
-	  Currently supports the YT8511 gigabit PHY.
+	  Currently supports YT85xx Gigabit Ethernet PHYs.
 
 config NATIONAL_PHY
 	tristate "National Semiconductor PHYs"
@@ -285,12 +293,7 @@ config NXP_TJA11XX_PHY
 	help
 	  Currently supports the NXP TJA1100 and TJA1101 PHY.
 
-config AT803X_PHY
-	tristate "Qualcomm Atheros AR803X PHYs and QCA833x PHYs"
-	depends on REGULATOR
-	help
-	  Currently supports the AR8030, AR8031, AR8033, AR8035 and internal
-	  QCA8337(Internal qca8k PHY) model
+source "drivers/net/phy/qcom/Kconfig"
 
 config QSEMI_PHY
 	tristate "Quality Semiconductor PHYs"
