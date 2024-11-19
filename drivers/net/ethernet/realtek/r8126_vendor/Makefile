@@ -34,6 +34,7 @@
 
 ENABLE_LIB_SUPPORT = n
 ENABLE_RX_PACKET_FRAGMENT = n
+ENABLE_FIBER_SUPPORT = n
 
 obj-$(CONFIG_R8126) := r8126.o
 r8126-objs := r8126_n.o rtl_eeprom.o rtltool.o
@@ -114,6 +115,11 @@ endif
 ifeq ($(ENABLE_LIB_SUPPORT), y)
 	r8126-objs += r8126_lib.o
 	EXTRA_CFLAGS += -DENABLE_LIB_SUPPORT
+endif
+
+ifeq ($(ENABLE_FIBER_SUPPORT), y)
+	r8126-objs += r8126_fiber.o
+	EXTRA_CFLAGS += -DENABLE_FIBER_SUPPORT
 endif
 
 ifeq ($(CONFIG_R8126_USE_FIRMWARE_FILE), y)
