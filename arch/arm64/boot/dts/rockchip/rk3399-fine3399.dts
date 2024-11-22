@@ -211,12 +211,12 @@
 	cooling-maps {
 		map2 {
 			trip = <&cpu_warm>;
-			cooling-device = <&fan THERMAL_NO_LIMIT 1>;
+			cooling-device = <&fan0 THERMAL_NO_LIMIT 1>;
 		};
 
 		map3 {
 			trip = <&cpu_hot>;
-			cooling-device = <&fan 2 THERMAL_NO_LIMIT>;
+			cooling-device = <&fan0 2 THERMAL_NO_LIMIT>;
 		};
 	};
 };
