@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * FB driver for the st7735R LCD Controller
+ * FB driver for the ST7735S LCD Controller
  *
  * Copyright (C) 2015 Dennis Menschel
  */
@@ -18,7 +18,7 @@
 
 #include "fbtft.h"
 
-#define DRVNAME "fb_st7735r"
+#define DRVNAME "fb_st7735s"
 
 #define DEFAULT_GAMMA \
 	"70 2C 2E 15 10 09 48 33 53 0B 19 18 20 25\n" \
@@ -31,7 +31,7 @@
 #define HSD20_IPS 1
 
 /**
- * enum st7735r_command - st7735R display controller commands
+ * enum st7735s_command - st7735S display controller commands
  *
  * @PORCTRL: porch setting
  * @GCTRL: gate control
@@ -47,12 +47,12 @@
  * The command names are the same as those found in the datasheet to ease
  * looking up their semantics and usage.
  *
- * Note that the st7735R display controller offers quite a few more commands
+ * Note that the st7735S display controller offers quite a few more commands
  * which have been omitted from this list as they are not used at the moment.
  * Furthermore, commands that are compliant with the MIPI DCS have been left
  * out as well to avoid duplicate entries.
  */
-enum st7735r_command {
+enum st7735s_command {
 	PORCTRL = 0xB2,
 	GCTRL = 0xB7,
 	VCOMS = 0xBB,
@@ -103,19 +103,19 @@ static int init_display(struct fbtft_par *par)
 	write_reg(par,0x11); //软复位
 	mdelay(120);
 	//下面添加初始化函数write_reg 参数分别为：结构体指针，写命令，写数据....(后都为数据)
-	//st7735R Frame Rate
+	//st7735S Frame Rate
 	write_reg(par,0xB1,0x05,0x3C,0x3C); //Normal mode
 	write_reg(par,0xB2,0x05,0x3C,0x3C); //Idle mode
 	write_reg(par,0xB3,0x05,0x3C,0x3C,0x05,0x3C,0x3C); //Partial mode
 	write_reg(par,0xB4,0x03); //Column inversion
-	//st7735r Power Sequence
+	//st7735s Power Sequence
 	write_reg(par,0xC0,0xAB,0x0B,0x04); //AVDD GVDD
 	write_reg(par,0xC1,0xC5); //VGH VGL C0
 	write_reg(par,0xC2,0x0D,0x00); //Normal Mode
 	write_reg(par,0xC3,0x8D,0x6A); //Idle
 	write_reg(par,0xC4,0x8D,0xEE); //MX, MY, RGB mode
 	write_reg(par,0xC5,0x0F); //VCOM
-	//st7735r Gamma Sequence
+	//st7735s Gamma Sequence
 	write_reg(par,0xE0,0x07,0x0E,0x08,0x07,0x10,0x07,0x02,0x07,0x09,0x0F,0x25,0x36,0x00,0x08,0x04,0x10); //positive gamma
 	write_reg(par,0xE1,0x0A,0x0D,0x08,0x07,0x0F,0x07,0x02,0x07,0x09,0x0F,0x25,0x35,0x00,0x09,0x04,0x10); //negative gamma
 	write_reg(par,0xFC,0x80);
@@ -335,13 +335,13 @@ static struct fbtft_display display = {
 	},
 };
 
-FBTFT_REGISTER_DRIVER(DRVNAME, "sitronix,st7735r", &display);
+FBTFT_REGISTER_DRIVER(DRVNAME, "sitronix,st7735s", &display);
 
 MODULE_ALIAS("spi:" DRVNAME);
 MODULE_ALIAS("platform:" DRVNAME);
-MODULE_ALIAS("spi:st7735r");
-MODULE_ALIAS("platform:st7735r");
+MODULE_ALIAS("spi:st7735s");
+MODULE_ALIAS("platform:st7735s");
 
-MODULE_DESCRIPTION("FB driver for the st7735r LCD Controller");
+MODULE_DESCRIPTION("FB driver for the st7735s LCD Controller");
 MODULE_AUTHOR("Dennis Menschel");
 MODULE_LICENSE("GPL");
