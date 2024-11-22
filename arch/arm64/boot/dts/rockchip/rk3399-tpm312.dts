@@ -271,13 +271,15 @@
 		};
 	};
 
-	// fan0: gpio-fan {
-	// 	#cooling-cells = <2>;
-	// 	compatible = "gpio-fan";
-	// 	gpio-fan,speed-map = <0 0 3000 1>;
-	// 	gpios = <&gpio2 RK_PA3 GPIO_ACTIVE_HIGH>;
-	// 	status = "okay";
-	// };
+	fan0: pwm-fan {
+		compatible = "pwm-fan";
+		cooling-levels = <0 40 80 120 160 200 255>;
+		#cooling-cells = <2>;
+		cooling-min-state = <0>;
+		cooling-max-state = <6>;
+		pwms = <&pwm1 0 128000 0>;
+		status = "okay";
+	};
 
 	gpio-keys {
 		compatible = "gpio-keys";
@@ -381,22 +383,33 @@
 	status = "okay";
 };
 
-// &cpu_thermal {
-// 	trips {
-// 		cpu_hot: cpu_hot {
-// 			hysteresis = <10000>;
-// 			temperature = <55000>;
-// 			type = "active";
-// 		};
-// 	};
+&cpu_thermal {
+	trips {
+		cpu_warm: cpu_warm {
+			temperature = <55000>;
+			hysteresis = <2000>;
+			type = "active";
+		};
 
-// 	cooling-maps {
-// 		map2 {
-// 			cooling-device = <&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
-// 			trip = <&cpu_hot>;
-// 		};
-// 	};
-// };
+		cpu_hot: cpu_hot {
+			temperature = <70000>;
+			hysteresis = <2000>;
+			type = "active";
+		};
+	};
+
+	cooling-maps {
+		map2 {
+			trip = <&cpu_warm>;
+			cooling-device = <&fan0 1 2>;
+		};
+
+		map3 {
+			trip = <&cpu_hot>;
+			cooling-device = <&fan0 4 5>;
+		};
+	};
+};
 
 &emmc_phy {
 	status = "okay";
