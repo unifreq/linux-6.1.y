@@ -79,6 +79,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-tn3399-v3.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-tpm312.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-tvi3315a.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-xiaobao.dtb
+dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-yskj.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-zcube1-max.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-zysj.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-anbernic-rg353p.dtb
