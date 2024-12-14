@@ -141,7 +141,13 @@
 	};
 };
 
+&combphy0 {
+	rockchip,dis-u3otg0-port;
+	status = "okay";
+};
+
 &combphy1 {
+	rockchip,dis-u3otg1-port;
 	status = "okay";
 };
 
@@ -532,7 +538,20 @@
 };
 
 &usb_host0_xhci {
+	phys = <&usb2phy0_otg>;
+	phy-names = "usb2-phy";
+	extcon = <&usb2phy0>;
+	maximum-speed = "high-speed";
+    snps,dis_u2_susphy_quirk;
 	dr_mode = "host";
+	status = "okay";
+};
+
+&usb_host0_ehci {
+	status = "okay";
+};
+
+&usb_host0_ohci {
 	status = "okay";
 };
 
@@ -540,24 +559,15 @@
 	status = "okay";
 };
 
-&usb2phy0_host {
+&usb2phy0_otg {
 	status = "okay";
 };
 
 &usb_host1_xhci {
-	status = "okay";
-};
-
-&usb2phy1 {
-	status = "okay";
-};
-
-&usb2phy1_host {
-	status = "okay";
-};
-
-&usb2phy1_otg {
-	status = "okay";
+	phys = <&usb2phy0_host>;
+	phy-names = "usb2-phy";
+	maximum-speed = "high-speed";
+    snps,dis_u2_susphy_quirk;
 };
 
 &vop {
@@ -573,4 +583,3 @@
 &vop_mmu {
 	status = "okay";
 };
-
