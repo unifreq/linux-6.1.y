@@ -133,9 +133,8 @@ void brcmf_of_probe(struct device *dev, enum brcmf_bus_type bus_type,
 		}
 		strreplace(board_type, '/', '-');
 		settings->board_type = board_type;
-
-		of_node_put(root);
 	}
+	of_node_put(root);
 
 	brcmf_of_probe_cc(dev, settings);
 
