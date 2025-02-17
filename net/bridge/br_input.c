@@ -136,6 +136,8 @@ int br_handle_frame_finish(struct net *net, struct sock *sk, struct sk_buff *skb
 			pkt_type = BR_PKT_MULTICAST;
 			if (br_multicast_rcv(&brmctx, &pmctx, vlan, skb, vid))
 				goto drop;
+			if (br->dev->flags & IFF_ALLMULTI)
+				local_rcv = true;
 		}
 	}
 
