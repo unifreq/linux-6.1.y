@@ -234,6 +234,7 @@ config KEYBOARD_EP93XX
 config KEYBOARD_GPIO
 	tristate "GPIO Buttons"
 	depends on GPIOLIB || COMPILE_TEST
+	depends on !KEYBOARD_GPIO_DISABLED
 	help
 	  This driver implements support for buttons connected
 	  to GPIO pins of various CPUs (and some other chips).
@@ -245,6 +246,21 @@ config KEYBOARD_GPIO
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called gpio_keys.
+
+config KEYBOARD_GPIO_DISABLED
+	bool
+
+config KEYBOARD_GPIO_BUTTON_HOTPLUG
+	tristate "Openwrt GPIO Hotplug Buttons"
+	depends on GPIOLIB
+	select KEYBOARD_GPIO_DISABLED
+	help
+	  Instead of generating input events (like in-kernel drivers do) it generates
+	  uevent-s and broadcasts them. This allows disabling input subsystem which is
+	  an overkill for OpenWrt simple needs.
+
+	  To compile this driver as a module, choose M here:
+	  the module will be called gpio_button_hotplug.
 
 config KEYBOARD_GPIO_POLLED
 	tristate "Polled GPIO buttons"
