@@ -284,10 +284,6 @@
 &combphy1_usq {
 	status = "okay";
 };
-
-&combphy2_psq {
-	status = "okay";
-};
 */
 
 &combphy0 {
@@ -1104,12 +1100,14 @@ vccio7-supply = <0x2e>;*/
 	};
 };
 
-
-
+//使能 pcie2x1 phy
+&combphy2_psq {
+	status = "okay";
+};
 &pcie2x1 {
 	status = "okay";
 	//todo
-	reset-gpios = <&gpio1 0xa 0x0>;
+	reset-gpios = <&gpio1 RK_PB2 GPIO_ACTIVE_HIGH>;
 };
 
 &i2s0_8ch {
