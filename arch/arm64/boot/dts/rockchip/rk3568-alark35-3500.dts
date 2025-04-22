@@ -296,10 +296,6 @@
 	status = "okay";
 };
 
-&combphy2 {
-	/* used for SATA */
-	status = "okay";
-};
 /*
 &bus_npu {
 	bus-supply = <&vdd_logic>;
@@ -1101,9 +1097,11 @@ vccio7-supply = <0x2e>;*/
 };
 
 //使能 pcie2x1 phy
-&combphy2_psq {
+&combphy2 {
+	/* used for SATA */
 	status = "okay";
 };
+
 &pcie2x1 {
 	status = "okay";
 	//todo
