@@ -21,7 +21,7 @@
 	};
 	//earlycon=uart8250,mmio32,0xfe660000 console=ttyFIQ0
 	/delete-node/ chosen;
-	adc-keys {
+	adc_keys: adc-keys {
 		compatible = "adc-keys";
 		io-channels = <&saradc 0>;
 		io-channel-names = "buttons";
@@ -29,10 +29,10 @@
 		u-boot,dm-spl;
 		status = "okay";
 
-		volumeup-key {
+		button-up {
 			u-boot,dm-spl;
+			label = "Volume Up";
 			linux,code = <KEY_VOLUMEUP>;
-			label = "volume up";
 			press-threshold-microvolt = <9>;
 		};
 	};
