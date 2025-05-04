@@ -11,7 +11,6 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/mbus.h>
-#include <linux/if_ether.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_net.h>

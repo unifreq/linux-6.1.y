@@ -6,7 +6,6 @@
  * Author: Frank <Frank.Sae@motor-comm.com>
  */
 
-#include <linux/bitfield.h>
 #include <linux/etherdevice.h>
 #include <linux/kernel.h>
 #include <linux/module.h>

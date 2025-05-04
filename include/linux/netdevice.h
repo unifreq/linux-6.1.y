@@ -543,7 +543,6 @@ static inline bool napi_complete(struct napi_struct *n)
 }
 
 int dev_set_threaded(struct net_device *dev, bool threaded);
-int backlog_set_threaded(bool threaded);
 
 /**
  *	napi_disable - prevent NAPI from scheduling
@@ -2202,7 +2201,7 @@ struct net_device {
 #if IS_ENABLED(CONFIG_AX25)
 	struct ax25_dev	__rcu	*ax25_ptr;
 #endif
-#if IS_ENABLED(CONFIG_CFG80211_HEADERS)
+#if IS_ENABLED(CONFIG_CFG80211)
 	struct wireless_dev	*ieee80211_ptr;
 #endif
 #if IS_ENABLED(CONFIG_IEEE802154) || IS_ENABLED(CONFIG_6LOWPAN)
@@ -3181,7 +3180,6 @@ struct softnet_data {
 	unsigned int		processed;
 	unsigned int		time_squeeze;
 	unsigned int		received_rps;
-	unsigned int		process_queue_empty;
 #ifdef CONFIG_RPS
 	struct softnet_data	*rps_ipi_list;
 #endif

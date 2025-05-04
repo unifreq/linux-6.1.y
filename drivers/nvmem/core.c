@@ -7,12 +7,9 @@
  */
 
 #include <linux/device.h>
-#include <linux/ctype.h>
-#include <linux/etherdevice.h>
 #include <linux/export.h>
 #include <linux/fs.h>
 #include <linux/idr.h>
-#include <linux/if_ether.h>
 #include <linux/init.h>
 #include <linux/kref.h>
 #include <linux/module.h>
@@ -782,62 +779,6 @@ static int nvmem_validate_keepouts(struct nvmem_device *nvmem)
 	return 0;
 }
 
-static int nvmem_mac_base_raw_read(void *context, const char *id, int index, unsigned int offset,
-				   void *buf, size_t bytes)
-{
-	if (WARN_ON(bytes != ETH_ALEN))
-		return -EINVAL;
-
-	if (index)
-		eth_addr_add(buf, index);
-
-	return 0;
-}
-
-static int nvmem_mac_base_ascii_read(void *context, const char *id, int index, unsigned int offset,
-				     void *buf, size_t bytes)
-{
-	u8 mac[ETH_ALEN];
-
-	if (WARN_ON(bytes != 3 * ETH_ALEN - 1))
-		return -EINVAL;
-
-	if (!mac_pton(buf, mac))
-		return -EINVAL;
-
-	if (index)
-		eth_addr_add(mac, index);
-
-	ether_addr_copy(buf, mac);
-
-	return 0;
-}
-
-static int nvmem_mac_base_hex_read(void *context, const char *id, int index, unsigned int offset,
-				   void *buf, size_t bytes)
-{
-	u8 mac[ETH_ALEN], *hexstr;
-	int i;
-
-	if (WARN_ON(bytes != 2 * ETH_ALEN))
-		return -EINVAL;
-
-	hexstr = (u8 *)buf;
-	for (i = 0; i < ETH_ALEN; i++) {
-		if (!isxdigit(hexstr[i * 2]) || !isxdigit(hexstr[i * 2 + 1]))
-			return -EINVAL;
-
-		mac[i] = (hex_to_bin(hexstr[i * 2]) << 4) | hex_to_bin(hexstr[i * 2 + 1]);
-	}
-
-	if (index)
-		eth_addr_add(mac, index);
-
-	ether_addr_copy(buf, mac);
-
-	return 0;
-}
-
 static int nvmem_add_cells_from_dt(struct nvmem_device *nvmem, struct device_node *np)
 {
 	struct device *dev = &nvmem->dev;
@@ -871,25 +812,6 @@ static int nvmem_add_cells_from_dt(struct nvmem_device *nvmem, struct device_nod
 
 		if (nvmem->fixup_dt_cell_info)
 			nvmem->fixup_dt_cell_info(nvmem, &info);
-
-		if (of_device_is_compatible(np, "fixed-layout")) {
-			if (of_device_is_compatible(child, "mac-base")) {
-				if (info.bytes == ETH_ALEN) {
-					info.raw_len = info.bytes;
-					info.bytes = ETH_ALEN;
-					info.read_post_process = nvmem_mac_base_raw_read;
-				} else if (info.bytes == 2 * ETH_ALEN) {
-					info.raw_len = info.bytes;
-					info.bytes = ETH_ALEN;
-					info.read_post_process = nvmem_mac_base_hex_read;
-				} else if (info.bytes == 3 * ETH_ALEN - 1) {
-					info.raw_len = info.bytes;
-					info.bytes = ETH_ALEN;
-					info.read_post_process = nvmem_mac_base_ascii_read;
-				}
-
-			}
-		}
 
 		ret = nvmem_add_one_cell(nvmem, &info);
 		kfree(info.name);
