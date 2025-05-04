@@ -115,16 +115,17 @@ static void lynx_pcs_get_state(struct phylink_pcs *pcs,
 	}
 
 	dev_dbg(&lynx->mdio->dev,
-		"mode=%s/%s/%s link=%u an_enabled=%u an_complete=%u\n",
+		"mode=%s/%s/%s link=%u an_complete=%u\n",
 		phy_modes(state->interface),
 		phy_speed_to_str(state->speed),
 		phy_duplex_to_str(state->duplex),
-		state->link, state->an_enabled, state->an_complete);
+		state->link, state->an_complete);
 }
 
-static int lynx_pcs_config_giga(struct mdio_device *pcs, unsigned int mode,
+static int lynx_pcs_config_giga(struct mdio_device *pcs,
 				phy_interface_t interface,
-				const unsigned long *advertising)
+				const unsigned long *advertising,
+				unsigned int neg_mode)
 {
 	u32 link_timer;
 	u16 if_mode;
@@ -137,8 +138,9 @@ static int lynx_pcs_config_giga(struct mdio_device *pcs, unsigned int mode,
 
 		if_mode = 0;
 	} else {
+		/* SGMII and QSGMII */
 		if_mode = IF_MODE_SGMII_EN;
-		if (mode == MLO_AN_INBAND) {
+		if (neg_mode == PHYLINK_PCS_NEG_INBAND_ENABLED) {
 			if_mode |= IF_MODE_USE_SGMII_AN;
 
 			/* Adjust link timer for SGMII */
@@ -154,7 +156,8 @@ static int lynx_pcs_config_giga(struct mdio_device *pcs, unsigned int mode,
 	if (err)
 		return err;
 
-	return phylink_mii_c22_pcs_config(pcs, mode, interface, advertising);
+	return phylink_mii_c22_pcs_config(pcs, interface, advertising,
+					  neg_mode);
 }
 
 static int lynx_pcs_config_usxgmii(struct mdio_device *pcs, unsigned int mode,
@@ -181,13 +184,16 @@ static int lynx_pcs_config(struct phylink_pcs *pcs, unsigned int mode,
 			   bool permit)
 {
 	struct lynx_pcs *lynx = phylink_pcs_to_lynx(pcs);
+	unsigned int neg_mode;
+
+	neg_mode = phylink_pcs_neg_mode(mode, ifmode, advertising);
 
 	switch (ifmode) {
 	case PHY_INTERFACE_MODE_1000BASEX:
 	case PHY_INTERFACE_MODE_SGMII:
 	case PHY_INTERFACE_MODE_QSGMII:
-		return lynx_pcs_config_giga(lynx->mdio, mode, ifmode,
-					    advertising);
+		return lynx_pcs_config_giga(lynx->mdio, ifmode, advertising,
+					    neg_mode);
 	case PHY_INTERFACE_MODE_2500BASEX:
 		if (phylink_autoneg_inband(mode)) {
 			dev_err(&lynx->mdio->dev,

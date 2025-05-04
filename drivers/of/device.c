@@ -256,7 +256,7 @@ static ssize_t of_device_get_modalias(struct device *dev, char *str, ssize_t len
 	ssize_t csize;
 	ssize_t tsize;
 
-	if ((!dev) || (!dev->of_node))
+	if ((!dev) || (!dev->of_node) || dev->of_node_reused)
 		return -ENODEV;
 
 	/* Name & Type */
@@ -380,7 +380,7 @@ int of_device_uevent_modalias(struct device *dev, struct kobj_uevent_env *env)
 {
 	int sl;
 
-	if ((!dev) || (!dev->of_node))
+	if ((!dev) || (!dev->of_node) || dev->of_node_reused)
 		return -ENODEV;
 
 	/* Devicetree modalias is tricky, we add it in 2 steps */
@@ -389,6 +389,8 @@ int of_device_uevent_modalias(struct device *dev, struct kobj_uevent_env *env)
 
 	sl = of_device_get_modalias(dev, &env->buf[env->buflen-1],
 				    sizeof(env->buf) - env->buflen);
+	if (sl < 0)
+		return sl;
 	if (sl >= (sizeof(env->buf) - env->buflen))
 		return -ENOMEM;
 	env->buflen += sl;
@@ -396,3 +398,44 @@ int of_device_uevent_modalias(struct device *dev, struct kobj_uevent_env *env)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(of_device_uevent_modalias);
+
+/**
+ * of_device_make_bus_id - Use the device node data to assign a unique name
+ * @dev: pointer to device structure that is linked to a device tree node
+ *
+ * This routine will first try using the translated bus address to
+ * derive a unique name. If it cannot, then it will prepend names from
+ * parent nodes until a unique name can be derived.
+ */
+void of_device_make_bus_id(struct device *dev)
+{
+	struct device_node *node = dev->of_node;
+	const __be32 *reg;
+	u64 addr;
+	u32 mask;
+
+	/* Construct the name, using parent nodes if necessary to ensure uniqueness */
+	while (node->parent) {
+		/*
+		 * If the address can be translated, then that is as much
+		 * uniqueness as we need. Make it the first component and return
+		 */
+		reg = of_get_property(node, "reg", NULL);
+		if (reg && (addr = of_translate_address(node, reg)) != OF_BAD_ADDR) {
+			if (!of_property_read_u32(node, "mask", &mask))
+				dev_set_name(dev, dev_name(dev) ? "%llx.%x.%pOFn:%s" : "%llx.%x.%pOFn",
+					     addr, ffs(mask) - 1, node, dev_name(dev));
+
+			else
+				dev_set_name(dev, dev_name(dev) ? "%llx.%pOFn:%s" : "%llx.%pOFn",
+					     addr, node, dev_name(dev));
+			return;
+		}
+
+		/* format arguments only used if dev_name() resolves to NULL */
+		dev_set_name(dev, dev_name(dev) ? "%s:%s" : "%s",
+			     kbasename(node->full_name), dev_name(dev));
+		node = node->parent;
+	}
+}
+EXPORT_SYMBOL_GPL(of_device_make_bus_id);
