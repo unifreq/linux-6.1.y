@@ -3634,22 +3634,9 @@ static int xmit_one(struct sk_buff *skb, struct net_device *dev,
 {
 	unsigned int len;
 	int rc;
-#ifdef CONFIG_SHORTCUT_FE
-	/* If this skb has been fast forwarded then we don't want it to
-	 * go to any taps (by definition we're trying to bypass them).
-	 */
-	if (!skb->fast_forwarded) {
-#endif
+
 	if (dev_nit_active(dev))
 		dev_queue_xmit_nit(skb, dev);
-#ifdef CONFIG_SHORTCUT_FE
-	}
-#endif
-
-#ifdef CONFIG_ETHERNET_PACKET_MANGLE
-	if (dev->eth_mangle_tx && !(skb = dev->eth_mangle_tx(dev, skb)))
-		return NETDEV_TX_OK;
-#endif
 
 	len = skb->len;
 	trace_net_dev_start_xmit(skb, dev);
@@ -5315,11 +5302,6 @@ void netdev_rx_handler_unregister(struct net_device *dev)
 }
 EXPORT_SYMBOL_GPL(netdev_rx_handler_unregister);
 
-#ifdef CONFIG_SHORTCUT_FE
-int (*athrs_fast_nat_recv)(struct sk_buff *skb) __rcu __read_mostly;
-EXPORT_SYMBOL_GPL(athrs_fast_nat_recv);
-#endif
-
 /*
  * Limit the use of PFMEMALLOC reserves to those protocols that implement
  * the special handling of PFMEMALLOC skbs.
@@ -5368,10 +5350,6 @@ static int __netif_receive_skb_core(struct sk_buff **pskb, bool pfmemalloc,
 	int ret = NET_RX_DROP;
 	__be16 type;
 
-#ifdef CONFIG_SHORTCUT_FE
-	int (*fast_recv)(struct sk_buff *skb);
-#endif
-
 	net_timestamp_check(!READ_ONCE(netdev_tstamp_prequeue), skb);
 
 	trace_netif_receive_skb(skb);
@@ -5409,15 +5387,6 @@ another_round:
 			goto out;
 	}
 
-#ifdef CONFIG_SHORTCUT_FE
-	fast_recv = rcu_dereference(athrs_fast_nat_recv);
-	if (fast_recv) {
-		if (fast_recv(skb)) {
-			ret = NET_RX_SUCCESS;
-			goto out;
-		}
-	}
-#endif
 	if (skb_skip_tc_classify(skb))
 		goto skip_classify;
 

@@ -3551,9 +3551,6 @@ static int mv88e6xxx_setup_port(struct mv88e6xxx_chip *chip, int port)
 	else
 		reg = 1 << port;
 
-	/* Disable ATU member violation interrupt */
-	reg |= MV88E6XXX_PORT_ASSOC_VECTOR_IGNORE_WRONG;
-
 	err = mv88e6xxx_port_write(chip, port, MV88E6XXX_PORT_ASSOC_VECTOR,
 				   reg);
 	if (err)

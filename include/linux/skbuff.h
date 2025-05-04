@@ -989,10 +989,6 @@ struct sk_buff {
 	__u8			csum_not_inet:1;
 	__u8			scm_io_uring:1;
 
-#ifdef CONFIG_SHORTCUT_FE
-	__u8			fast_forwarded:1;
-#endif
-
 #ifdef CONFIG_NET_SCHED
 	__u16			tc_index;	/* traffic control index */
 #endif
@@ -3075,10 +3071,6 @@ static inline int pskb_trim(struct sk_buff *skb, unsigned int len)
 	return (len < skb->len) ? __pskb_trim(skb, len) : 0;
 }
 
-extern struct sk_buff *__netdev_alloc_skb_ip_align(struct net_device *dev,
-		unsigned int length, gfp_t gfp);
-
-
 /**
  *	pskb_trim_unique - remove end from a paged unique (not cloned) buffer
  *	@skb: buffer to alter
@@ -3227,6 +3219,16 @@ static inline struct sk_buff *dev_alloc_skb(unsigned int length)
 	return netdev_alloc_skb(NULL, length);
 }
 
+
+static inline struct sk_buff *__netdev_alloc_skb_ip_align(struct net_device *dev,
+		unsigned int length, gfp_t gfp)
+{
+	struct sk_buff *skb = __netdev_alloc_skb(dev, length + NET_IP_ALIGN, gfp);
+
+	if (NET_IP_ALIGN && skb)
+		skb_reserve(skb, NET_IP_ALIGN);
+	return skb;
+}
 
 static inline struct sk_buff *netdev_alloc_skb_ip_align(struct net_device *dev,
 		unsigned int length)

@@ -114,23 +114,14 @@ static void mtk_pcs_lynxi_get_state(struct phylink_pcs *pcs,
 				    struct phylink_link_state *state)
 {
 	struct mtk_pcs_lynxi *mpcs = pcs_to_mtk_pcs_lynxi(pcs);
-	unsigned int bm, bmsr, adv;
+	unsigned int bm, adv;
 
 	/* Read the BMSR and LPA */
 	regmap_read(mpcs->regmap, SGMSYS_PCS_CONTROL_1, &bm);
-	bmsr = FIELD_GET(SGMII_BMSR, bm);
-
-	if (state->interface == PHY_INTERFACE_MODE_2500BASEX) {
-		state->link = !!(bmsr & BMSR_LSTATUS);
-		state->an_complete = !!(bmsr & BMSR_ANEGCOMPLETE);
-		state->speed = SPEED_2500;
-		state->duplex = DUPLEX_FULL;
-
-		return;
-	}
-
 	regmap_read(mpcs->regmap, SGMSYS_PCS_ADVERTISE, &adv);
-	phylink_mii_c22_pcs_decode_state(state, bmsr, FIELD_GET(SGMII_LPA, adv));
+
+	phylink_mii_c22_pcs_decode_state(state, FIELD_GET(SGMII_BMSR, bm),
+					 FIELD_GET(SGMII_LPA, adv));
 }
 
 static void mtk_sgmii_reset(struct mtk_pcs_lynxi *mpcs)
@@ -172,8 +163,7 @@ static int mtk_pcs_lynxi_config(struct phylink_pcs *pcs, unsigned int neg_mode,
 	if (neg_mode & PHYLINK_PCS_NEG_INBAND)
 		sgm_mode |= SGMII_REMOTE_FAULT_DIS;
 
-	if (neg_mode == PHYLINK_PCS_NEG_INBAND_ENABLED &&
-	    interface != PHY_INTERFACE_MODE_2500BASEX) {
+	if (neg_mode == PHYLINK_PCS_NEG_INBAND_ENABLED) {
 		if (interface == PHY_INTERFACE_MODE_SGMII)
 			sgm_mode |= SGMII_SPEED_DUPLEX_AN;
 		bmcr = BMCR_ANENABLE;
