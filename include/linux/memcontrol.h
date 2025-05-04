@@ -795,11 +795,6 @@ static inline void obj_cgroup_put(struct obj_cgroup *objcg)
 	percpu_ref_put(&objcg->refcnt);
 }
 
-static inline bool mem_cgroup_tryget(struct mem_cgroup *memcg)
-{
-	return !memcg || css_tryget(&memcg->css);
-}
-
 static inline void mem_cgroup_put(struct mem_cgroup *memcg)
 {
 	if (memcg)
@@ -1298,11 +1293,6 @@ struct mem_cgroup *mem_cgroup_from_css(struct cgroup_subsys_state *css)
 
 static inline void obj_cgroup_put(struct obj_cgroup *objcg)
 {
-}
-
-static inline bool mem_cgroup_tryget(struct mem_cgroup *memcg)
-{
-	return true;
 }
 
 static inline void mem_cgroup_put(struct mem_cgroup *memcg)

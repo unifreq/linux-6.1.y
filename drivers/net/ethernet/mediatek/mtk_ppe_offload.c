@@ -111,7 +111,6 @@ mtk_flow_get_wdma_info(struct net_device *dev, const u8 *addr, struct mtk_wdma_i
 	info->queue = path->mtk_wdma.queue;
 	info->bss = path->mtk_wdma.bss;
 	info->wcid = path->mtk_wdma.wcid;
-	info->amsdu = path->mtk_wdma.amsdu;
 
 	return 0;
 }
@@ -189,21 +188,18 @@ mtk_flow_set_output_device(struct mtk_eth *eth, struct mtk_foe_entry *foe,
 			   int *wed_index)
 {
 	struct mtk_wdma_info info = {};
-	int pse_port, dsa_port, queue;
+	int pse_port, dsa_port;
 
 	if (mtk_flow_get_wdma_info(dev, dest_mac, &info) == 0) {
 		mtk_foe_entry_set_wdma(eth, foe, info.wdma_idx, info.queue,
-				       info.bss, info.wcid, info.amsdu);
-		if (mtk_is_netsys_v2_or_greater(eth)) {
+				       info.bss, info.wcid);
+		if (MTK_HAS_CAPS(eth->soc->caps, MTK_NETSYS_V2)) {
 			switch (info.wdma_idx) {
 			case 0:
-				pse_port = PSE_WDMA0_PORT;
+				pse_port = 8;
 				break;
 			case 1:
-				pse_port = PSE_WDMA1_PORT;
-				break;
-			case 2:
-				pse_port = PSE_WDMA2_PORT;
+				pse_port = 9;
 				break;
 			default:
 				return -EINVAL;
@@ -216,23 +212,15 @@ mtk_flow_set_output_device(struct mtk_eth *eth, struct mtk_foe_entry *foe,
 	}
 
 	dsa_port = mtk_flow_get_dsa_port(&dev);
+	if (dsa_port >= 0)
+		mtk_foe_entry_set_dsa(eth, foe, dsa_port);
 
 	if (dev == eth->netdev[0])
-		pse_port = PSE_GDM1_PORT;
+		pse_port = 1;
 	else if (dev == eth->netdev[1])
-		pse_port = PSE_GDM2_PORT;
-	else if (dev == eth->netdev[2])
-		pse_port = PSE_GDM3_PORT;
+		pse_port = 2;
 	else
 		return -EOPNOTSUPP;
-
-	if (dsa_port >= 0) {
-		mtk_foe_entry_set_dsa(eth, foe, dsa_port);
-		queue = 3 + dsa_port;
-	} else {
-		queue = pse_port - 1;
-	}
-	mtk_foe_entry_set_queue(eth, foe, queue);
 
 out:
 	mtk_foe_entry_set_pse_port(eth, foe, pse_port);
@@ -241,8 +229,7 @@ out:
 }
 
 static int
-mtk_flow_offload_replace(struct mtk_eth *eth, struct flow_cls_offload *f,
-			 int ppe_index)
+mtk_flow_offload_replace(struct mtk_eth *eth, struct flow_cls_offload *f)
 {
 	struct flow_rule *rule = flow_cls_offload_flow_rule(f);
 	struct flow_action_entry *act;
@@ -459,7 +446,6 @@ mtk_flow_offload_replace(struct mtk_eth *eth, struct flow_cls_offload *f,
 	entry->cookie = f->cookie;
 	memcpy(&entry->data, &foe, sizeof(entry->data));
 	entry->wed_index = wed_index;
-	entry->ppe_index = ppe_index;
 
 	err = mtk_foe_entry_commit(eth->ppe[entry->ppe_index], entry);
 	if (err < 0)
@@ -505,19 +491,14 @@ static int
 mtk_flow_offload_stats(struct mtk_eth *eth, struct flow_cls_offload *f)
 {
 	struct mtk_flow_entry *entry;
-	u64 packets, bytes;
-	int idle;
+	u32 idle;
 
 	entry = rhashtable_lookup(&eth->flow_table, &f->cookie,
 				  mtk_flow_ht_params);
 	if (!entry)
 		return -ENOENT;
 
-	packets = entry->packets;
-	bytes = entry->bytes;
-	mtk_foe_entry_get_stats(eth->ppe[entry->ppe_index], entry, &idle);
-	f->stats.pkts += entry->packets - packets;
-	f->stats.bytes += entry->bytes - bytes;
+	idle = mtk_foe_entry_idle_time(eth->ppe[entry->ppe_index], entry);
 	f->stats.lastused = jiffies - idle * HZ;
 
 	return 0;
@@ -525,15 +506,25 @@ mtk_flow_offload_stats(struct mtk_eth *eth, struct flow_cls_offload *f)
 
 static DEFINE_MUTEX(mtk_flow_offload_mutex);
 
-int mtk_flow_offload_cmd(struct mtk_eth *eth, struct flow_cls_offload *cls,
-			 int ppe_index)
+static int
+mtk_eth_setup_tc_block_cb(enum tc_setup_type type, void *type_data, void *cb_priv)
 {
+	struct flow_cls_offload *cls = type_data;
+	struct net_device *dev = cb_priv;
+	struct mtk_mac *mac = netdev_priv(dev);
+	struct mtk_eth *eth = mac->hw;
 	int err;
+
+	if (!tc_can_offload(dev))
+		return -EOPNOTSUPP;
+
+	if (type != TC_SETUP_CLSFLOWER)
+		return -EOPNOTSUPP;
 
 	mutex_lock(&mtk_flow_offload_mutex);
 	switch (cls->command) {
 	case FLOW_CLS_REPLACE:
-		err = mtk_flow_offload_replace(eth, cls, ppe_index);
+		err = mtk_flow_offload_replace(eth, cls);
 		break;
 	case FLOW_CLS_DESTROY:
 		err = mtk_flow_offload_destroy(eth, cls);
@@ -548,23 +539,6 @@ int mtk_flow_offload_cmd(struct mtk_eth *eth, struct flow_cls_offload *cls,
 	mutex_unlock(&mtk_flow_offload_mutex);
 
 	return err;
-}
-
-static int
-mtk_eth_setup_tc_block_cb(enum tc_setup_type type, void *type_data, void *cb_priv)
-{
-	struct flow_cls_offload *cls = type_data;
-	struct net_device *dev = cb_priv;
-	struct mtk_mac *mac = netdev_priv(dev);
-	struct mtk_eth *eth = mac->hw;
-
-	if (!tc_can_offload(dev))
-		return -EOPNOTSUPP;
-
-	if (type != TC_SETUP_CLSFLOWER)
-		return -EOPNOTSUPP;
-
-	return mtk_flow_offload_cmd(eth, cls, 0);
 }
 
 static int

@@ -394,11 +394,6 @@ static const struct sfp_quirk sfp_quirks[] = {
 	SFP_QUIRK("ALCATELLUCENT", "3FE46541AA", sfp_quirk_2500basex,
 		  sfp_fixup_long_startup),
 
-	// Fiberstore GPON-ONU-34-20BI can operate at 2500base-X, but report 1.2GBd
-	// NRZ in their EEPROM
-	SFP_QUIRK("FS", "GPON-ONU-34-20BI", sfp_quirk_2500basex,
-		  sfp_fixup_ignore_tx_fault),
-
 	SFP_QUIRK_F("HALNy", "HL-GSFP", sfp_fixup_halny_gsfp),
 
 	// HG MXPD-483II-F 2.5G supports 2500Base-X, but incorrectly reports
@@ -2474,10 +2469,6 @@ static void sfp_stop(struct sfp *sfp)
 	sfp_sm_event(sfp, SFP_E_DEV_DOWN);
 }
 
-static void sfp_set_signal_rate(struct sfp *sfp, unsigned int rate_kbd)
-{
-}
-
 static int sfp_module_info(struct sfp *sfp, struct ethtool_modinfo *modinfo)
 {
 	/* locking... and check module is present */
@@ -2556,7 +2547,6 @@ static const struct sfp_socket_ops sfp_module_ops = {
 	.detach = sfp_detach,
 	.start = sfp_start,
 	.stop = sfp_stop,
-	.set_signal_rate = sfp_set_signal_rate,
 	.module_info = sfp_module_info,
 	.module_eeprom = sfp_module_eeprom,
 	.module_eeprom_by_page = sfp_module_eeprom_by_page,
