@@ -23,6 +23,15 @@ void dw_pcie_version_detect(struct dw_pcie *pci)
 {
 	u32 ver;
 
+	/*
+	 * Some boards with Amlogic A311D SoC's AHCI controller breaks
+	 * if the version register is read.
+	 * Skip detection for some boards marked with skip-version-detect
+	 * in the device tree.
+	 */
+	if (of_property_read_bool(pci->dev->of_node, "skip-version-detect"))
+		return;
+
 	/* The content of the CSR is zero on DWC PCIe older than v4.70a */
 	ver = dw_pcie_readl_dbi(pci, PCIE_VERSION_NUMBER);
 	if (!ver)
