@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2019 BayLibre, SAS
+ * Author: Neil Armstrong <narmstrong@baylibre.com>
+ * Copyright (c) 2019 Christian Hewitt <christianshewitt@gmail.com>
+ * Copyright (c) 2025 retro98boy <retro98boy@qq.com>
+ */
+
+/dts-v1/;
+
+#include "meson-g12b-a311d-onethingcloud-oes.dts"
+
+&ethmac {
+	phy-mode = "rgmii-rxid";
+	/* rtl8211f 2ns + MAC 1000ps */
+	rx-internal-delay-ps = <1000>;
+	/* keep MAC rx delay when in rgmii-rxid mode */
+	amlogic,keep-rx-internal-delay;
+	amlogic,invert-rxclk;
+};
