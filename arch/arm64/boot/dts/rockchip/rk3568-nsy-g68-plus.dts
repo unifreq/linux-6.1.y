@@ -951,11 +951,11 @@
 };
 
 &pwm2 {
-	status = "disable";
+	status = "disabled";
 };
 
 &pwm3 {
-	status = "disable";
+	status = "disabled";
 };
 
 &power {
