@@ -108,6 +108,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-hlink-h66k.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-hlink-h68k.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-hlink-h69k.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-hlink-ht3.dtb
+dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-lz-k3568.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-mrkaio-m68s.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-nsy-g16-plus.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-nsy-g68-plus.dtb
