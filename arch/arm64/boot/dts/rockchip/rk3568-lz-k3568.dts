@@ -199,43 +199,58 @@
 	cpu-supply = <&vdd_cpu>;
 };
 
+/* SGMII (Port 0, eth1) */
 &gmac0 {
-	assigned-clocks = <&cru SCLK_GMAC0_RX_TX>;
-	assigned-clock-parents = <&gmac0_xpcsclk>;
-	power-domains = <&power RK3568_PD_PIPE>;
-	phys = <&combphy2 PHY_TYPE_SGMII>;
+	assigned-clocks = <&cru SCLK_GMAC0_RX_TX>, <&cru SCLK_GMAC0>;
+	assigned-clock-parents = <&gmac0_xpcsclk>, <&cru CLK_MAC0_2TOP>;
+	assigned-clock-rates = <0>, <125000000>;
+
+	clock_in_out = "output";
+	tx_delay = <0x30>;    /* 0x4e */
+	rx_delay = <0x10>;    /* 0x0b */
+
 	phy-handle = <&sgmii_phy>;
 	phy-mode = "sgmii";
-	pinctrl-names = "default";
-	pinctrl-0 = <&gmac0_miim>;
+
 	rockchip,xpcs = <&xpcs>;
 	rockchip,pipegrf = <&pipegrf>;
-	snps,reset-gpio = <&gpio3 RK_PD0 GPIO_ACTIVE_LOW>; // bsp
+	power-domains = <&power RK3568_PD_PIPE>;
+	phys = <&combphy2 PHY_TYPE_SGMII>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&gmac0_miim>;
+
+	snps,reset-gpio = <&gpio3 RK_PD0 GPIO_ACTIVE_LOW>;
 	snps,reset-active-low;
 	snps,reset-delays-us = <0 20000 100000>;
-	// tx_delay = <0xff>;
-	// rx_delay = <0xff>;
+
 	status = "okay";
 };
 
+/* RGMII (Port 1, eth0) */
 &gmac1 {
-	assigned-clocks = <&cru SCLK_GMAC1_RX_TX>, <&cru SCLK_GMAC1>;
-	assigned-clock-parents = <&cru SCLK_GMAC1_RGMII_SPEED>;
+	assigned-clocks = <&cru SCLK_GMAC1>, <&cru SCLK_GMAC1_RX_TX>;
+	assigned-clock-parents = <&cru 391>;
 	assigned-clock-rates = <0>, <125000000>;
+
 	clock_in_out = "output";
 	phy-handle = <&rgmii_phy>;
 	phy-mode = "rgmii";
+
 	pinctrl-names = "default";
 	pinctrl-0 = <&gmac1m1_miim
-			&gmac1m1_tx_bus2
-			&gmac1m1_rx_bus2
-			&gmac1m1_rgmii_clk
-			&gmac1m1_rgmii_bus>;
-	snps,reset-gpio = <&gpio4 RK_PC0 GPIO_ACTIVE_LOW>; // bsp
+		     &gmac1m1_tx_bus2
+		     &gmac1m1_rx_bus2
+		     &gmac1m1_rgmii_clk
+		     &gmac1m1_rgmii_bus>;
+
+	snps,reset-gpio = <&gpio4 RK_PC0 GPIO_ACTIVE_LOW>;
 	snps,reset-active-low;
 	snps,reset-delays-us = <0 20000 100000>;
+
 	tx_delay = <0x4e>;
 	rx_delay = <0x0b>;
+
 	status = "okay";
 };
 
@@ -530,6 +545,12 @@
 	sgmii_phy: ethernet-phy@0 {
 		compatible = "ethernet-phy-ieee802.3-c22";
 		reg = <0x0>;
+		motorcomm,clk-out-frequency-hz = <125000000>;
+		motorcomm,keep-pll-enabled;
+
+		eee-broken-1000t;
+		eee-broken-100tx;
+		eee-broken-10t;
 	};
 };
 
@@ -662,9 +683,7 @@
 };
 
 &usb_host0_xhci {
-	extcon = <&usb2phy0>;
-	dr_mode = "host";
-	status = "okay";
+	status = "disabled";
 };
 
 &usb_host1_ehci {
@@ -676,6 +695,14 @@
 };
 
 &usb_host1_xhci {
+	status = "disabled";
+};
+
+&sata0 {
+	status = "okay";
+};
+
+&sata1 {
 	status = "okay";
 };
 
