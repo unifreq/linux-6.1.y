@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2023 AI-Speaker.com. All rights reserved.
+ */
+
+/dts-v1/;
+
+#include "meson-sm1-x88-pro-x3.dts"
+
+/ {
+	compatible = "amlogic,sm1";
+	model = "X88-Pro-X3 4G";
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x0 0x0 0x1 0x0>; // 4GB
+	};
+};
