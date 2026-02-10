@@ -13,10 +13,10 @@
 	model = "AIS DEV3 / X88 Pro Pro X3 / X99 Max Plus / Transpeed X3 Plus";
 
 	fd655_dev {
-		dat_pin = <0x18 0x40 0x00>;
+		dat_pin = <&gpio 0x40 0x00>;
 		dev_name = "fd655_dev";
 		status = "okay";
-		clk_pin = <0x18 0x41 0x00>;
+		clk_pin = <&gpio 0x41 0x00>;
 		compatible = "amlogic,fd655_dev";
 	};
 
@@ -51,8 +51,8 @@
 		max-speed = <1000>;
 		reset-assert-us = <10000>;
 		reset-deassert-us = <80000>;
-        reset-gpios = <0x2a 0x0f 0x07>;
-		interrupt-parent = <0x01>;
+        reset-gpios = <&gpio 15 GPIO_ACTIVE_LOW>;
+		interrupt-parent = <&gpio_intc>;
 		interrupts = <26 IRQ_TYPE_LEVEL_LOW>;
 	};
 };

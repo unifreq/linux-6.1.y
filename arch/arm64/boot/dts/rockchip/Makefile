@@ -29,6 +29,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3368-orion-r68-meta.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3368-px5-evb.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3368-r88.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-aio-3399b.dtb
+dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-aio-3399c-ai.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-bozz-sw799.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-dg3399.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-dlfr100.dtb
