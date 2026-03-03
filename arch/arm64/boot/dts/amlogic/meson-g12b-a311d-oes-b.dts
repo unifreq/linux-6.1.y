@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2019 BayLibre, SAS
+ * Author: Neil Armstrong <narmstrong@baylibre.com>
+ * Copyright (c) 2019 Christian Hewitt <christianshewitt@gmail.com>
+ * Copyright (c) 2025 retro98boy <retro98boy@qq.com>
+ */
+
+/dts-v1/;
+
+#include "meson-g12b-a311d-oes-a.dts"
+
+/ {
+	model = "OneThing Cloud OES (Mode B)";
+};
+
+&ethmac {
+	phy-mode = "rgmii-rxid";
+	amlogic,invert-rxclk;
+	amlogic,keep-rx-internal-delay;
+	rx-internal-delay-ps = <1000>;
+};
