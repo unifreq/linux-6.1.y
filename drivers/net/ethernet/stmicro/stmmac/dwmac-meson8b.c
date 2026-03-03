@@ -29,6 +29,8 @@
 #define PRG_ETH0_EXT_RGMII_MODE		1
 #define PRG_ETH0_EXT_RMII_MODE		4
 
+#define PRG_ETH0_INVERT_RXCLK		BIT(3)
+
 /* mux to choose between fclk_div2 (bit unset) and mpll2 (bit set) */
 #define PRG_ETH0_CLK_M250_SEL_MASK	GENMASK(4, 4)
 
@@ -94,6 +96,8 @@ struct meson8b_dwmac {
 	struct clk			*rgmii_tx_clk;
 	u32				tx_delay_ns;
 	u32				rx_delay_ps;
+	bool				keep_rx_delay;
+	bool				invert_rxclk;
 	struct clk			*timing_adj_clk;
 };
 
@@ -299,7 +303,8 @@ static int meson8b_init_rgmii_delays(struct meson8b_dwmac *dwmac)
 		break;
 	case PHY_INTERFACE_MODE_RGMII_RXID:
 		delay_config = tx_dly_config;
-		cfg_rxclk_dly = 0;
+		if(!dwmac->keep_rx_delay)
+			cfg_rxclk_dly = 0;
 		break;
 	case PHY_INTERFACE_MODE_RGMII_TXID:
 		delay_config = rx_adj_config;
@@ -307,7 +312,8 @@ static int meson8b_init_rgmii_delays(struct meson8b_dwmac *dwmac)
 	case PHY_INTERFACE_MODE_RGMII_ID:
 	case PHY_INTERFACE_MODE_RMII:
 		delay_config = 0;
-		cfg_rxclk_dly = 0;
+		if(!dwmac->keep_rx_delay)
+			cfg_rxclk_dly = 0;
 		break;
 	default:
 		dev_err(dwmac->dev, "unsupported phy-mode %s\n",
@@ -336,6 +342,11 @@ static int meson8b_init_rgmii_delays(struct meson8b_dwmac *dwmac)
 				PRG_ETH0_ADJ_ENABLE | PRG_ETH0_ADJ_SETUP |
 				PRG_ETH0_ADJ_DELAY | PRG_ETH0_ADJ_SKEW,
 				delay_config);
+
+	if(dwmac->invert_rxclk)
+		meson8b_dwmac_mask_bits(dwmac, PRG_ETH0,
+					PRG_ETH0_INVERT_RXCLK,
+					PRG_ETH0_INVERT_RXCLK);
 
 	meson8b_dwmac_mask_bits(dwmac, PRG_ETH1, PRG_ETH1_CFG_RXCLK_DLY,
 				cfg_rxclk_dly);
@@ -455,6 +466,16 @@ static int meson8b_dwmac_probe(struct platform_device *pdev)
 			goto err_remove_config_dt;
 		}
 	}
+
+	/*
+	* Some boards need to enable the internal RX delay of the PHY
+	* while simultaneously enabling the internal RX delay of the MAC,
+	* as implemented in the Amlogic BSP kernel.
+	*/
+	dwmac->keep_rx_delay = of_property_read_bool(pdev->dev.of_node,
+		"amlogic,keep-rx-internal-delay");
+
+	dwmac->invert_rxclk = of_property_read_bool(pdev->dev.of_node, "amlogic,invert-rxclk");
 
 	dwmac->timing_adj_clk = devm_clk_get_optional(dwmac->dev,
 						      "timing-adjustment");
