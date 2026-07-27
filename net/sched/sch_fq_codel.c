@@ -278,7 +278,7 @@ static void drop_func(struct sk_buff *skb, void *ctx)
 	qdisc_qstats_drop(sch);
 }
 
-static struct sk_buff *fq_codel_dequeue(struct Qdisc *sch)
+static struct sk_buff *__fq_codel_dequeue(struct Qdisc *sch)
 {
 	struct fq_codel_sched_data *q = qdisc_priv(sch);
 	struct sk_buff *skb;
@@ -304,21 +304,6 @@ begin:
 			    &flow->cvars, &q->cstats, qdisc_pkt_len,
 			    codel_get_enqueue_time, drop_func, dequeue_func);
 
-	/* If our qlen is 0 qdisc_tree_reduce_backlog() will deactivate
-	 * parent class, dequeue in parent qdisc will do the same if we
-	 * return skb. Temporary increment qlen if we have skb.
-	 */
-	if (q->cstats.drop_count) {
-		if (skb)
-			sch->q.qlen++;
-		qdisc_tree_reduce_backlog(sch, q->cstats.drop_count,
-					  q->cstats.drop_len);
-		if (skb)
-			sch->q.qlen--;
-		q->cstats.drop_count = 0;
-		q->cstats.drop_len = 0;
-	}
-
 	if (!skb) {
 		/* force a pass through old_flows to prevent starvation */
 		if ((head == &q->new_flows) && !list_empty(&q->old_flows))
@@ -329,6 +314,50 @@ begin:
 	}
 	qdisc_bstats_update(sch, skb);
 	flow->deficit -= qdisc_pkt_len(skb);
+
+	return skb;
+}
+
+static void fq_codel_dequeue_drop(struct Qdisc *sch)
+{
+	struct fq_codel_sched_data *q = qdisc_priv(sch);
+
+	if (q->cstats.drop_count) {
+		qdisc_tree_reduce_backlog(sch, q->cstats.drop_count,
+					  q->cstats.drop_len);
+		q->cstats.drop_count = 0;
+		q->cstats.drop_len = 0;
+	}
+}
+
+static struct sk_buff *fq_codel_dequeue(struct Qdisc *sch)
+{
+	struct sk_buff *skb;
+
+	skb =  __fq_codel_dequeue(sch);
+
+	fq_codel_dequeue_drop(sch);
+
+	return skb;
+}
+
+static struct sk_buff *fq_codel_peek(struct Qdisc *sch)
+{
+	struct sk_buff *skb = skb_peek(&sch->gso_skb);
+
+	if (!skb) {
+		skb = __fq_codel_dequeue(sch);
+
+		if (skb) {
+			__skb_queue_head(&sch->gso_skb, skb);
+			/* it's still part of the queue */
+			qdisc_qstats_backlog_inc(sch, skb);
+			sch->q.qlen++;
+		}
+
+		fq_codel_dequeue_drop(sch);
+	}
+
 	return skb;
 }
 
@@ -471,11 +500,7 @@ static int fq_codel_init(struct Qdisc *sch, struct nlattr *opt,
 
 	sch->limit = 10*1024;
 	q->flows_cnt = 1024;
-#ifdef CONFIG_X86_64
 	q->memory_limit = 32 << 20; /* 32 MBytes */
-#else
-	q->memory_limit = 4 << 20; /* 4 MBytes */
-#endif
 	q->drop_batch_size = 64;
 	q->quantum = psched_mtu(qdisc_dev(sch));
 	INIT_LIST_HEAD(&q->new_flows);
@@ -719,7 +744,7 @@ static struct Qdisc_ops fq_codel_qdisc_ops __read_mostly = {
 	.priv_size	=	sizeof(struct fq_codel_sched_data),
 	.enqueue	=	fq_codel_enqueue,
 	.dequeue	=	fq_codel_dequeue,
-	.peek		=	qdisc_peek_dequeued,
+	.peek		=	fq_codel_peek,
 	.init		=	fq_codel_init,
 	.reset		=	fq_codel_reset,
 	.destroy	=	fq_codel_destroy,
