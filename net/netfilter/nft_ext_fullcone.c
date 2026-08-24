@@ -121,7 +121,9 @@ static int exp_event_cb(unsigned int events, const struct nf_exp_event *item)
 }
 #endif
 
-#if ((LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 113)) && \
+#if ((LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 161)) && \
+     (LINUX_VERSION_CODE <  KERNEL_VERSION(6, 2, 0))) || \
+    ((LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 113)) && \
      (LINUX_VERSION_CODE <  KERNEL_VERSION(6, 7, 0))) || \
      (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
 static int nft_fullcone_validate(const struct nft_ctx *ctx, const struct nft_expr *expr)
