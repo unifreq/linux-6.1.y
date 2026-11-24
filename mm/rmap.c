@@ -827,14 +827,37 @@ static bool folio_referenced_one(struct folio *folio,
 		}
 
 		if (pvmw.pte) {
-			if (lru_gen_enabled() && pte_young(*pvmw.pte)) {
+			pte_t pteval = ptep_get(pvmw.pte);
+			bool young = false;
+
+			if (lru_gen_enabled() && pte_present(pteval) &&
+			    pte_young(pteval) &&
+			    !(vma->vm_flags & (VM_SEQ_READ | VM_RAND_READ))) {
 				lru_gen_look_around(&pvmw);
 				referenced++;
 			}
 
-			if (ptep_clear_flush_young_notify(vma, address,
-						pvmw.pte))
-				referenced++;
+			/*
+			 * PFN swap PTEs, such as device-exclusive ones, that
+			 * actually map pages are "old" from a CPU perspective.
+			 * The MMU notifier takes care of any device aspects.
+			 */
+			if (pte_present(pteval))
+				young = ptep_clear_flush_young(vma, address, pvmw.pte);
+			young |= mmu_notifier_clear_flush_young(vma->vm_mm, address,
+								address + PAGE_SIZE);
+			if (young) {
+				/*
+				 * Don't treat a reference through
+				 * a sequentially read mapping as such.
+				 * If the folio has been used in another mapping,
+				 * we will catch it; if this other mapping is
+				 * already gone, the unmap path will have set
+				 * the referenced flag or activated the folio.
+				 */
+				if (likely(!(vma->vm_flags & VM_SEQ_READ)))
+					referenced++;
+			}
 		} else if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE)) {
 			if (pmdp_clear_flush_young_notify(vma, address,
 						pvmw.pmd))
@@ -1525,9 +1548,14 @@ static bool try_to_unmap_one(struct folio *folio, struct vm_area_struct *vma,
 			break;
 		}
 
-		subpage = folio_page(folio,
-					pte_pfn(*pvmw.pte) - folio_pfn(folio));
 		address = pvmw.address;
+		if (folio_test_hugetlb(folio))
+			pteval = huge_ptep_get(pvmw.pte);
+		else
+			pteval = ptep_get(pvmw.pte);
+
+		subpage = folio_page(folio,
+					pte_pfn(pteval) - folio_pfn(folio));
 		anon_exclusive = folio_test_anon(folio) &&
 				 PageAnonExclusive(subpage);
 
@@ -1918,8 +1946,13 @@ static bool try_to_migrate_one(struct folio *folio, struct vm_area_struct *vma,
 			VM_BUG_ON_FOLIO(folio_nr_pages(folio) > 1, folio);
 			subpage = &folio->page;
 		} else {
+			if (folio_test_hugetlb(folio))
+				pteval = huge_ptep_get(pvmw.pte);
+			else
+				pteval = ptep_get(pvmw.pte);
+
 			subpage = folio_page(folio,
-					pte_pfn(*pvmw.pte) - folio_pfn(folio));
+					pte_pfn(pteval) - folio_pfn(folio));
 		}
 		address = pvmw.address;
 		anon_exclusive = folio_test_anon(folio) &&

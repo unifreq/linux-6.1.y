@@ -12,6 +12,7 @@
 #include <linux/io.h>
 #include <linux/iopoll.h>
 #include <linux/module.h>
+#include <linux/mutex.h>
 #include <linux/nvmem-provider.h>
 #include <linux/reset.h>
 #include <linux/slab.h>
@@ -77,9 +78,11 @@ struct rockchip_data {
 struct rockchip_otp {
 	struct device *dev;
 	void __iomem *base;
-	struct clk_bulk_data *clks;
 	struct reset_control *rst;
 	const struct rockchip_data *data;
+	/* Serializes access to the OTP controller state machine */
+	struct mutex mutex;
+	struct clk_bulk_data clks[];
 };
 
 static int rockchip_otp_reset(struct rockchip_otp *otp)
@@ -239,15 +242,20 @@ static int rockchip_otp_read(void *context, unsigned int offset,
 	if (!otp->data || !otp->data->reg_read)
 		return -EINVAL;
 
+	mutex_lock(&otp->mutex);
+
 	ret = clk_bulk_prepare_enable(otp->data->num_clks, otp->clks);
 	if (ret < 0) {
 		dev_err(otp->dev, "failed to prepare/enable clks\n");
-		return ret;
+		goto unlock;
 	}
 
 	ret = otp->data->reg_read(context, offset, val, bytes);
 
 	clk_bulk_disable_unprepare(otp->data->num_clks, otp->clks);
+
+unlock:
+	mutex_unlock(&otp->mutex);
 
 	return ret;
 }
@@ -286,15 +294,15 @@ static const struct rockchip_data rk3588_data = {
 static const struct of_device_id rockchip_otp_match[] = {
 	{
 		.compatible = "rockchip,px30-otp",
-		.data = &px30_data,
+		.data = (void *)&px30_data,
 	},
 	{
 		.compatible = "rockchip,rk3308-otp",
-		.data = &px30_data,
+		.data = (void *)&px30_data,
 	},
 	{
 		.compatible = "rockchip,rk3588-otp",
-		.data = &rk3588_data,
+		.data = (void *)&rk3588_data,
 	},
 	{ /* sentinel */ },
 };
@@ -309,47 +317,44 @@ static int rockchip_otp_probe(struct platform_device *pdev)
 	int ret, i;
 
 	data = of_device_get_match_data(dev);
-	if (!data)
-		return dev_err_probe(dev, -EINVAL, "failed to get match data\n");
+	if (!data) {
+		dev_err(dev, "failed to get match data\n");
+		return -EINVAL;
+	}
 
-	otp = devm_kzalloc(&pdev->dev, sizeof(struct rockchip_otp),
+	otp = devm_kzalloc(&pdev->dev, struct_size(otp, clks, data->num_clks),
 			   GFP_KERNEL);
 	if (!otp)
 		return -ENOMEM;
 
 	otp->data = data;
 	otp->dev = dev;
+
+	ret = devm_mutex_init(dev, &otp->mutex);
+	if (ret)
+		return ret;
+
 	otp->base = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(otp->base))
-		return dev_err_probe(dev, PTR_ERR(otp->base),
-				     "failed to ioremap resource\n");
-
-	otp->clks = devm_kcalloc(dev, data->num_clks, sizeof(*otp->clks),
-				 GFP_KERNEL);
-	if (!otp->clks)
-		return -ENOMEM;
+		return PTR_ERR(otp->base);
 
 	for (i = 0; i < data->num_clks; ++i)
 		otp->clks[i].id = data->clks[i];
 
 	ret = devm_clk_bulk_get(dev, data->num_clks, otp->clks);
 	if (ret)
-		return dev_err_probe(dev, ret, "failed to get clocks\n");
+		return ret;
 
-	otp->rst = devm_reset_control_array_get_exclusive(dev);
+	otp->rst = devm_reset_control_get(dev, "phy");
 	if (IS_ERR(otp->rst))
-		return dev_err_probe(dev, PTR_ERR(otp->rst),
-				     "failed to get resets\n");
+		return PTR_ERR(otp->rst);
 
 	otp_config.size = data->size;
 	otp_config.priv = otp;
 	otp_config.dev = dev;
-
 	nvmem = devm_nvmem_register(dev, &otp_config);
-	if (IS_ERR(nvmem))
-		return dev_err_probe(dev, PTR_ERR(nvmem),
-				     "failed to register nvmem device\n");
-	return 0;
+
+	return PTR_ERR_OR_ZERO(nvmem);
 }
 
 static struct platform_driver rockchip_otp_driver = {
