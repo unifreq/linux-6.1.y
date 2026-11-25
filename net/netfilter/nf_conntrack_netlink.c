@@ -34,6 +34,7 @@
 #include <linux/netfilter.h>
 #include <net/netlink.h>
 #include <net/sock.h>
+#include <net/netns/generic.h>
 #include <net/netfilter/nf_conntrack.h>
 #include <net/netfilter/nf_conntrack_core.h>
 #include <net/netfilter/nf_conntrack_expect.h>
@@ -721,7 +722,7 @@ static size_t ctnetlink_nlmsg_size(const struct nf_conn *ct)
 
 static int
 #ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
-ctnetlink_conntrack_event(struct notifier_block *this, unsigned long events, void *ptr)
+__ctnetlink_conntrack_event(struct notifier_block *this, unsigned long events, void *ptr)
 #else
 ctnetlink_conntrack_event(unsigned int events, const struct nf_ct_event *item)
 #endif
@@ -3758,9 +3759,27 @@ static int ctnetlink_stat_exp_cpu(struct sk_buff *skb,
 
 #ifdef CONFIG_NF_CONNTRACK_EVENTS
 #ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
-static struct notifier_block ctnl_notifier = {
-	.notifier_call = ctnetlink_conntrack_event
+/* Each namespace needs its own links in the conntrack notifier chain. */
+struct ctnetlink_net {
+	struct notifier_block ct_notifier;
 };
+
+static unsigned int ctnetlink_net_id __read_mostly;
+
+static int ctnetlink_conntrack_event(struct notifier_block *this,
+				   unsigned long events, void *ptr)
+{
+	/* Netlink send failures must not stop delivery to other listeners. */
+	__ctnetlink_conntrack_event(this, events, ptr);
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block *ctnl_notifier_of(struct net *net)
+{
+	struct ctnetlink_net *cn = net_generic(net, ctnetlink_net_id);
+
+	return &cn->ct_notifier;
+}
 #else
 static struct nf_ct_event_notifier ctnl_notifier = {
 	.ct_event = ctnetlink_conntrack_event,
@@ -3858,7 +3877,12 @@ MODULE_ALIAS_NFNL_SUBSYS(NFNL_SUBSYS_CTNETLINK_EXP);
 static int __net_init ctnetlink_net_init(struct net *net)
 {
 #ifdef CONFIG_NF_CONNTRACK_EVENTS
+#ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
+	ctnl_notifier_of(net)->notifier_call = ctnetlink_conntrack_event;
+	nf_conntrack_register_notifier(net, ctnl_notifier_of(net));
+#else
 	nf_conntrack_register_notifier(net, &ctnl_notifier);
+#endif
 #endif
 	return 0;
 }
@@ -3867,7 +3891,7 @@ static void ctnetlink_net_pre_exit(struct net *net)
 {
 #ifdef CONFIG_NF_CONNTRACK_EVENTS
 #ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
-	nf_conntrack_unregister_notifier(net,&ctnl_notifier);
+	nf_conntrack_unregister_notifier(net, ctnl_notifier_of(net));
 #else
 	nf_conntrack_unregister_notifier(net);
 #endif
@@ -3875,6 +3899,10 @@ static void ctnetlink_net_pre_exit(struct net *net)
 }
 
 static struct pernet_operations ctnetlink_net_ops = {
+#if defined(CONFIG_NF_CONNTRACK_EVENTS) && defined(CONFIG_NF_CONNTRACK_CHAIN_EVENTS)
+	.id		= &ctnetlink_net_id,
+	.size		= sizeof(struct ctnetlink_net),
+#endif
 	.init		= ctnetlink_net_init,
 	.pre_exit	= ctnetlink_net_pre_exit,
 };
